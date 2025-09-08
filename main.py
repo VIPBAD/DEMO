@@ -11,7 +11,7 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN") or "8482046560:AAHDHQAgtnWNp7gQr7c5E6MKL
 WEBAPP_URL = os.environ.get("WEBAPP_URL") or "https://demo-qled.onrender.com/"
 
 # Create Pyrogram Client for bot
-app = Client("musicbot", bot_token=BOT_TOKEN)
+app = Client("mndjnen", bot_token=BOT_TOKEN)
 
 
 # /demo command handler
