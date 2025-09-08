@@ -10,9 +10,7 @@
   img.avatar{width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,0.08)}
   pre{background:#0b0b0f;padding:12px;border-radius:8px;overflow:auto}
   .row{display:flex;gap:12px;align-items:center}
-  .warn{color:#ff9b9b}
-  .small{font-size:13px;color:#ddd'}
-  .muted{opacity:0.85;font-size:14px}
+  .small{font-size:13px;color:#ddd}
 </style>
 </head>
 <body>
@@ -39,12 +37,10 @@
     <h3>Instructions</h3>
     <ul>
       <li>Open this page <strong>inside Telegram</strong> by clicking your bot's WebApp button (the inline button that says "Open Music WebApp").</li>
-      <li>Or test backend directly: <code>curl "https://demo-qled.onrender.com/get_profile_photo?user_id=8016771632"</code></li>
     </ul>
   </div>
 
 <script>
-  // Helper elements
   const initUnsafeEl = document.getElementById('initUnsafe');
   const initSignedEl = document.getElementById('initSigned');
   const fullnameEl = document.getElementById('fullname');
@@ -53,7 +49,36 @@
   const avatarEl = document.getElementById('avatar');
   const photoResultEl = document.getElementById('photoResult');
 
-  // Detect Telegram WebApp
+  // Manual tester UI (for non-Telegram testing)
+  const card = document.querySelector('.card');
+  const manualDiv = document.createElement('div');
+  manualDiv.style.marginTop = '14px';
+  manualDiv.innerHTML = `
+    <div style="margin-bottom:8px"><strong>Manual test (use when not opened from Telegram)</strong></div>
+    <input id="manualUserId" placeholder="Enter user_id to fetch profile photo" style="padding:8px;border-radius:6px;border:0;outline:0;width:58%" />
+    <button id="manualBtn" style="padding:8px 12px;border-radius:6px;border:0;margin-left:8px;cursor:pointer">Fetch</button>
+    <div id="manualMsg" style="margin-top:8px;font-size:13px;opacity:0.9"></div>
+  `;
+  card.appendChild(manualDiv);
+
+  document.getElementById('manualBtn').addEventListener('click', () => {
+    const uid = document.getElementById('manualUserId').value.trim();
+    if(!uid){ document.getElementById('manualMsg').textContent = 'Please enter a user id.'; return; }
+    document.getElementById('manualMsg').textContent = 'loading...';
+    fetch('/get_profile_photo?user_id=' + encodeURIComponent(uid), {cache: "no-store", credentials: "same-origin"})
+      .then(r => r.json())
+      .then(js => {
+        document.getElementById('manualMsg').textContent = JSON.stringify(js);
+        avatarEl.src = (js && js.photo_url) ? js.photo_url : "/static/default-avatar.png";
+        fullnameEl.textContent = 'Manual test';
+        usernameEl.textContent = '';
+        useridEl.textContent = 'user.id = ' + uid;
+      })
+      .catch(err => {
+        document.getElementById('manualMsg').textContent = 'Error: ' + err.message;
+      });
+  });
+
   const tg = window.Telegram?.WebApp;
 
   function showNotInsideTelegram() {
@@ -62,35 +87,31 @@
     fullnameEl.textContent = "Open inside Telegram";
     usernameEl.textContent = "";
     useridEl.textContent = "";
-    photoResultEl.textContent = "Open this page from inside Telegram to auto-load your profile.";
+    photoResultEl.textContent = "Open this page from inside Telegram to auto-load your profile. Or use manual test below.";
   }
 
   if (!tg) {
     showNotInsideTelegram();
-    // Also log helpful info for debugging
-    console.warn("Telegram.WebApp not available. Open the page via t.me/<YourBot>/<ShortName> or by clicking the bot's WebApp button inside Telegram.");
+    console.warn("Telegram.WebApp not available. Open via bot's WebApp button inside Telegram.");
   } else {
-    try { tg.expand(); } catch(e) {}
+    try{ tg.expand(); }catch(e){}
     const unsafe = tg.initDataUnsafe || null;
     const signed = tg.initData || null;
-
     initUnsafeEl.textContent = JSON.stringify(unsafe, null, 2);
     initSignedEl.textContent = signed ? JSON.stringify(signed, null, 2) : "not provided";
 
     const user = unsafe?.user || null;
     if (user) {
-      // show user info from Telegram WebApp initDataUnsafe
       const fullname = [user.first_name, user.last_name].filter(Boolean).join(' ');
       fullnameEl.textContent = fullname || "Unknown";
       usernameEl.textContent = user.username ? ("@" + user.username) : "";
       useridEl.textContent = "user.id = " + user.id;
 
-      // fetch profile photo from backend (same domain)
       photoResultEl.textContent = "loading...";
       const endpoint = '/get_profile_photo?user_id=' + encodeURIComponent(user.id);
       fetch(endpoint, {cache: "no-store", credentials: "same-origin"})
         .then(r => {
-          if (!r.ok) throw new Error("network error " + r.status);
+          if(!r.ok) throw new Error("network " + r.status);
           return r.json();
         })
         .then(js => {
@@ -98,12 +119,10 @@
           avatarEl.src = (js && js.photo_url) ? js.photo_url : "/static/default-avatar.png";
         })
         .catch(err => {
-          console.error("fetch error", err);
           photoResultEl.textContent = "fetch error: " + (err.message || err);
           avatarEl.src = "/static/default-avatar.png";
         });
     } else {
-      // no user info in initDataUnsafe (rare if not authorized)
       initUnsafeEl.textContent = JSON.stringify(unsafe, null, 2);
       useridEl.textContent = "initDataUnsafe.user not present";
       photoResultEl.textContent = "user info not present in initDataUnsafe";
