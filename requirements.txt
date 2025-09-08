@@ -1,5 +1,5 @@
-Flask
-requests
+fastapi
+uvicorn[standard]
+httpx
 python-dotenv
-flask-cors
-gunicorn
+jinja2
