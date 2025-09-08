@@ -1,8 +1,10 @@
+# main.py
 import os
 from typing import Optional
 from datetime import datetime, timedelta
+import logging
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Body
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -20,10 +22,11 @@ TELEGRAM_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 TELEGRAM_FILE = f"https://api.telegram.org/file/bot{BOT_TOKEN}"
 
 app = FastAPI()
+# In production, replace ["*"] with your domain(s).
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # production vich apna domain daalna
-    allow_methods=["*"],
+    allow_origins=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -32,12 +35,15 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
+logger = logging.getLogger("uvicorn.error")
+
 # simple in-memory cache: user_id -> (file_path_or_none, expires_at)
 _profile_cache: dict[str, tuple[Optional[str], datetime]] = {}
 CACHE_TTL = timedelta(minutes=30)
 
 
 async def _fetch_user_profile_file_path(user_id: str) -> Optional[str]:
+    # check cache
     entry = _profile_cache.get(user_id)
     if entry:
         file_path, expires_at = entry
@@ -82,10 +88,19 @@ async def get_profile_photo(user_id: str):
             return JSONResponse({"photo_url": None})
         file_url = f"{TELEGRAM_FILE}/{file_path}"
         return JSONResponse({"photo_url": file_url})
-    except httpx.HTTPStatusError:
+    except httpx.HTTPStatusError as e:
+        logger.error("Telegram API HTTP error: %s", e)
         return JSONResponse({"error": "telegram api error"}, status_code=502)
-    except Exception:
+    except Exception as e:
+        logger.exception("Unexpected error")
         return JSONResponse({"error": "internal server error"}, status_code=500)
+
+
+# Debug endpoint: client posts UA + initData so server logs what client saw.
+@app.post("/debug_client")
+async def debug_client(payload: dict = Body(...)):
+    logger.info("DEBUG CLIENT: %s", payload)
+    return {"ok": True}
 
 
 @app.get("/health")
