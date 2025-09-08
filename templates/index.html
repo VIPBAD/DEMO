@@ -16,16 +16,21 @@
     }
     document.getElementById('manualMsg').textContent = 'loading...';
     fetch('/get_profile_photo?user_id=' + encodeURIComponent(uid), { cache: "no-store", credentials: "same-origin" })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+        return r.json();
+      })
       .then(js => {
         document.getElementById('manualMsg').textContent = JSON.stringify(js);
         avatarEl.src = (js && js.photo_url) ? js.photo_url : "/static/default-avatar.png";
         fullnameEl.textContent = 'Manual test';
         usernameEl.textContent = '';
         useridEl.textContent = 'user.id = ' + uid;
+        console.log('Manual fetch result:', js);
       })
       .catch(err => {
         document.getElementById('manualMsg').textContent = 'Error: ' + err.message;
+        console.error('Manual fetch error:', err);
       });
   });
 
@@ -35,13 +40,20 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(obj)
-    }).catch(e => console.warn('debug_client post failed', e));
+    })
+      .then(r => {
+        if (!r.ok) throw new Error(`Debug POST failed with status: ${r.status}`);
+        console.log('Debug client sent:', obj);
+      })
+      .catch(e => console.error('Debug client post failed:', e));
   }
 
+  console.log('Script started');
   const tg = window.Telegram?.WebApp;
   const ua = navigator.userAgent || "";
 
   if (!tg) {
+    console.log('Telegram.WebApp not detected. Ensure you\'re opening via the bot.');
     initUnsafeEl.textContent = "Telegram.WebApp not available — open via the bot's WebApp button inside the Telegram app.";
     initSignedEl.textContent = "not available";
     fullnameEl.textContent = "Open inside Telegram";
@@ -49,26 +61,25 @@
     useridEl.textContent = "";
     photoResultEl.textContent = "Open this page from inside Telegram to auto-load your profile. Or use manual test above.";
     sendClientDebug({ ua, note: "no Telegram.WebApp" });
-    console.log("Telegram.WebApp not detected. Ensure you're opening via the bot.");
   } else {
-    try { tg.expand(); } catch (e) {}
+    console.log('Telegram.WebApp detected, initializing...');
+    try { tg.expand(); } catch (e) { console.warn('tg.expand failed:', e); }
     const unsafe = tg.initDataUnsafe || null;
     const signed = tg.initData || null;
 
     initUnsafeEl.textContent = JSON.stringify(unsafe, null, 2);
     initSignedEl.textContent = signed ? JSON.stringify(signed, null, 2) : "not provided";
-
     sendClientDebug({ ua, note: "has Telegram.WebApp", initDataUnsafe: unsafe });
-    console.log("Telegram.WebApp detected. initDataUnsafe:", unsafe);
+    console.log('initDataUnsafe:', unsafe);
 
     const user = unsafe?.user || null;
     if (user && user.id) {
+      console.log('User data found:', user);
       const fullname = [user.first_name, user.last_name].filter(Boolean).join(' ');
       fullnameEl.textContent = fullname || "Unknown";
       usernameEl.textContent = user.username ? ("@" + user.username) : "";
       useridEl.textContent = "user.id = " + user.id;
 
-      // Fetch profile photo from backend
       photoResultEl.textContent = "loading...";
       fetch('/get_profile_photo?user_id=' + encodeURIComponent(user.id), { cache: "no-store", credentials: "same-origin" })
         .then(r => {
@@ -78,18 +89,18 @@
         .then(js => {
           photoResultEl.textContent = JSON.stringify(js, null, 2);
           avatarEl.src = (js && js.photo_url) ? js.photo_url : "/static/default-avatar.png";
-          console.log("Profile photo fetch result:", js);
+          console.log('Profile photo fetch result:', js);
         })
         .catch(err => {
-          console.error("fetch error", err);
+          console.error('fetch error:', err);
           photoResultEl.textContent = "fetch error: " + (err.message || err);
           avatarEl.src = "/static/default-avatar.png";
         });
     } else {
+      console.log('User data missing or invalid:', user);
       initUnsafeEl.textContent = JSON.stringify(unsafe, null, 2);
       useridEl.textContent = "initDataUnsafe.user not present or missing id";
       photoResultEl.textContent = "user info not present in initDataUnsafe or missing id";
-      console.log("User data missing or invalid:", user);
     }
   }
 </script>
