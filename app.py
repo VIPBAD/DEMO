@@ -6,7 +6,7 @@ from functools import lru_cache
 from dotenv import load_dotenv
 import logging
 
-# load .env in dev (optional)
+# Load .env in dev (optional)
 load_dotenv()
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
