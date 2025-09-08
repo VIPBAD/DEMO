@@ -12,63 +12,73 @@
 
   const tg = window.Telegram?.WebApp || null;
   if (!tg) {
-    status.textContent = "Telegram WebApp not available; open inside Telegram.";
+    status.textContent = "❌ Telegram WebApp not available; open inside Telegram.";
     return;
   }
 
-  tg.ready();  // Initialize WebApp
+  tg.ready();
 
   const unsafe = tg.initDataUnsafe || null;
   const signed = tg.initData || null;
 
-  // Show initial client-side data
-  show({ ua: navigator.userAgent, hasWebApp: !!tg, initDataUnsafe: unsafe ? unsafe : null, initData: signed ? signed : null });
-  status.textContent = "collected client values — sending to server for verification...";
-
-  if (signed) {
-    try {
-      // Fetch data from server
-      const r = await fetch('/verify_init', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ initData: signed, initDataUnsafe: unsafe })
-      });
-      const js = await r.json();
-      show(js);
-      if (js.ok) {
-        status.textContent = "verified";
-        if (js.room_id) {
-          roomIdSpan.textContent = `Room - ${js.room_id}`;
-          listenerCountSpan.textContent = `${js.listener_count} listener${js.listener_count > 1 ? 's' : ''}`;
-          roomInfo.style.display = 'block';
-        }
-
-        // JavaScript-based profile handling (fetch from Telegram.WebApp)
-        if (unsafe?.user) {
-          const user = unsafe.user;
-          usernameSpan.textContent = user.username || user.first_name || 'Anonymous';
-          profile.style.display = 'flex';
-
-          // Use Telegram WebApp API to get profile photo if available
-          if (user.photo_url) {
-            avatarImg.src = user.photo_url;
-          } else if (js.profile_photo_url) {
-            avatarImg.src = js.profile_photo_url;  // Fallback to server-fetched photo
-          } else {
-            console.log("Profile photo not available due to privacy settings.");
-          }
-        }
-      } else {
-        status.textContent = "verification failed";
-      }
-    } catch (e) {
-      status.textContent = "network error: " + e.message;
-      show({ error: e.message });
-    }
-  } else {
-    status.textContent = "no signed initData present; open inside Telegram using web_app button (tap, don't long-press).";
+  function hasHash(s) {
+    return s && s.includes("hash=");
   }
 
-  // Debug info
-  fetch('/debug_client', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ua:navigator.userAgent, initDataUnsafe: unsafe, initDataSigned: signed ? true : false }) }).catch(()=>{});
+  // Show debug values
+  show({ ua: navigator.userAgent, hasWebApp: !!tg, initDataUnsafe: unsafe, initData: signed });
+
+  if (!hasHash(signed)) {
+    status.textContent = "⚠️ Verification data missing.\nPlease open this WebApp by tapping the bot's WebApp button inside Telegram (do not long-press or open in browser).";
+    return;
+  }
+
+  status.textContent = "Sending data to server for verification...";
+
+  try {
+    const r = await fetch('/verify_init', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ initData: signed, initDataUnsafe: unsafe })
+    });
+    const js = await r.json();
+    show(js);
+
+    if (js.ok) {
+      status.textContent = "✅ Verified";
+
+      if (js.room_id) {
+        roomIdSpan.textContent = `Room - ${js.room_id}`;
+        listenerCountSpan.textContent = `${js.listener_count} listener${js.listener_count > 1 ? 's' : ''}`;
+        roomInfo.style.display = 'block';
+      }
+
+      if (unsafe?.user) {
+        const user = unsafe.user;
+        usernameSpan.textContent = user.username || user.first_name || 'Anonymous';
+        profile.style.display = 'flex';
+        if (user.photo_url) {
+          avatarImg.src = user.photo_url;
+        } else if (js.profile_photo_url) {
+          avatarImg.src = js.profile_photo_url;
+        }
+      }
+    } else {
+      status.textContent = "❌ Verification failed";
+    }
+  } catch (e) {
+    status.textContent = "Network error: " + e.message;
+    show({ error: e.message });
+  }
+
+  // Send debug info silently
+  fetch('/debug_client', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      ua: navigator.userAgent,
+      initDataUnsafe: unsafe,
+      initDataSigned: !!signed
+    })
+  }).catch(()=>{});
 })();
