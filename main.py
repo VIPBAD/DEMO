@@ -1,19 +1,17 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import Application, CommandHandler, ContextTypes
-import random
+from telegram import Update
 
 BOT_TOKEN = "8410391376:AAF2GqNdUnl1Rh8CZIYwiwj3PfPv27-Dcg8"
-BOT_USERNAME = "TGINLINEMUSICBOT"
-SHORTNAME = "MiniMusic"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    chat = update.message.chat
-    payload = chat.id if chat.type in ['group', 'supergroup'] else user.id  # Use chat ID for groups, user ID otherwise
-    deeplink = f"http://t.me/TGINLINEMUSICBOT/Demo?startapp={payload}"
-    kb = InlineKeyboardMarkup([[InlineKeyboardButton("🎵 Open Music WebApp", url=deeplink)]])
+    url = "https://demo-qled.onrender.com/"  # aapki deployed MiniApp URL
+    kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🎵 Open Music WebApp", web_app=WebAppInfo(url=url))]
+    ])
+    chat = update.effective_chat
     await update.message.reply_text(
-        f"Welcome, {user.first_name}! Tap the button to open the WebApp for {chat.title if chat.type in ['group', 'supergroup'] else 'your session'}.",
+        f"Welcome to WebApp in {chat.title if chat.type != 'private' else 'your chat'}!",
         reply_markup=kb
     )
 
