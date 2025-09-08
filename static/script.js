@@ -1,12 +1,11 @@
 (async function () {
   const out = document.getElementById('out');
   const status = document.getElementById('status');
-  const roomInfo = document.getElementById('room-info');
-  const roomIdSpan = document.getElementById('room-id');
-  const listenerCountSpan = document.getElementById('listener-count');
-  const profile = document.getElementById('profile');
-  const avatarImg = document.getElementById('avatar');
-  const usernameSpan = document.getElementById('username');
+  const profileCard = document.getElementById('profile-card');
+  const avatar = document.getElementById('avatar');
+  const username = document.getElementById('username');
+  const favorites = document.getElementById('favorites');
+  const totalPlays = document.getElementById('total-plays');
 
   function show(v) {
     out.textContent = JSON.stringify(v, null, 2);
@@ -20,15 +19,11 @@
 
   tg.ready();
 
-  const unsafe = tg.initDataUnsafe || null;
   const signed = tg.initData || null;
 
   function hasHash(s) {
     return s && s.includes("hash=");
   }
-
-  // Show initial debug values
-  show({ ua: navigator.userAgent, hasWebApp: !!tg, initDataUnsafe: unsafe, initData: signed });
 
   if (!hasHash(signed)) {
     status.textContent = "⚠️ Verification data missing.\nPlease open this WebApp by tapping the bot's WebApp button inside Telegram.";
@@ -41,51 +36,33 @@
     const r = await fetch('/verify_init', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ initData: signed, initDataUnsafe: unsafe })
+      body: JSON.stringify({ initData: signed })
     });
     const js = await r.json();
     show(js);
 
     if (js.ok) {
       status.textContent = "✅ Verified";
-      status.style.color = "#4a90e2"; // Green for success
+      status.className = "success";
 
-      if (js.room_id) {
-        roomIdSpan.textContent = `Room - ${js.room_id}`;
-        listenerCountSpan.textContent = `${js.listener_count} listener${js.listener_count > 1 ? 's' : ''}`;
-        roomInfo.style.display = 'block';
-      }
-
-      if (unsafe?.user) {
-        const user = unsafe.user;
-        usernameSpan.textContent = user.username || user.first_name || 'Anonymous';
-        profile.style.display = 'flex';
-        if (user.photo_url) {
-          avatarImg.src = user.photo_url;
-        } else if (js.profile_photo_url) {
-          avatarImg.src = js.profile_photo_url;
-        } else {
-          avatarImg.src = "/static/default-avatar.png";
+      profileCard.style.display = 'block';
+      if (js.user) {
+        // Custom username with emojis
+        const customName = `("${js.user.first_name || 'User'} [🌸] '♥_♥'")`;
+        username.textContent = customName;
+        favorites.textContent = "0"; // Hardcoded for now; can be dynamic if stored
+        totalPlays.textContent = "1"; // Hardcoded for now; can be dynamic if stored
+        if (js.profile_photo_url) {
+          avatar.src = js.profile_photo_url;
+        } else if (js.user.photo_url) {
+          avatar.src = js.user.photo_url;
         }
       }
     } else {
       status.textContent = `❌ Verification failed: ${js.error || 'Unknown error'}`;
-      status.style.color = "#ff4444"; // Red for error
     }
   } catch (e) {
     status.textContent = "Network error: " + e.message;
-    status.style.color = "#ff4444";
     show({ error: e.message });
   }
-
-  // Send debug info silently
-  fetch('/debug_client', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      ua: navigator.userAgent,
-      initDataUnsafe: unsafe,
-      initDataSigned: !!signed
-    })
-  }).catch(() => {});
 })();
