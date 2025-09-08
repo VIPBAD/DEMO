@@ -20,7 +20,6 @@
 
   tg.ready();
 
-  const unsafe = tg.initDataUnsafe || null;
   const signed = tg.initData || null;
 
   function hasHash(s) {
@@ -28,7 +27,7 @@
   }
 
   // Show initial debug values
-  show({ ua: navigator.userAgent, hasWebApp: !!tg, initDataUnsafe: unsafe, initData: signed });
+  show({ initData: signed });
 
   if (!hasHash(signed)) {
     status.textContent = "⚠️ Verification data missing.\nPlease open this WebApp by tapping the bot's WebApp button inside Telegram.";
@@ -41,14 +40,14 @@
     const r = await fetch('/verify_init', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ initData: signed, initDataUnsafe: unsafe })
+      body: JSON.stringify({ initData: signed }) // Send only the full initData string
     });
     const js = await r.json();
     show(js);
 
     if (js.ok) {
       status.textContent = "✅ Verified";
-      status.style.color = "#4a90e2"; // Green for success
+      status.style.color = "#4a90e2";
 
       if (js.room_id) {
         roomIdSpan.textContent = `Room - ${js.room_id}`;
@@ -56,8 +55,8 @@
         roomInfo.style.display = 'block';
       }
 
-      if (unsafe?.user) {
-        const user = unsafe.user;
+      if (tg.initDataUnsafe?.user) {
+        const user = tg.initDataUnsafe.user;
         usernameSpan.textContent = user.username || user.first_name || 'Anonymous';
         profile.style.display = 'flex';
         if (user.photo_url) {
@@ -70,7 +69,7 @@
       }
     } else {
       status.textContent = `❌ Verification failed: ${js.error || 'Unknown error'}`;
-      status.style.color = "#ff4444"; // Red for error
+      status.style.color = "#ff4444";
     }
   } catch (e) {
     status.textContent = "Network error: " + e.message;
@@ -82,10 +81,6 @@
   fetch('/debug_client', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      ua: navigator.userAgent,
-      initDataUnsafe: unsafe,
-      initDataSigned: !!signed
-    })
+    body: JSON.stringify({ initData: signed, initDataSigned: !!signed })
   }).catch(() => {});
 })();
