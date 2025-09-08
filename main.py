@@ -2,7 +2,7 @@ import os
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN") or "YOUR_TOKEN_HERE"
+BOT_TOKEN = os.environ.get("BOT_TOKEN") or "8482046560:AAHDHQAgtnWNp7gQr7c5E6MKLtxnvyytyDI"
 WEBAPP_URL = os.environ.get("WEBAPP_URL") or "https://demo-qled.onrender.com/"
 
 # Use an in-memory session so no api_id/api_hash required and no session file created
