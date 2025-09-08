@@ -10,7 +10,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     chat = update.message.chat
     payload = chat.id if chat.type in ['group', 'supergroup'] else user.id  # Use chat ID for groups, user ID otherwise
-    deeplink = f"https://t.me/{BOT_USERNAME}/{SHORTNAME}?startapp={payload}"
+    deeplink = f"http://t.me/TGINLINEMUSICBOT/Demo?startapp={payload}"
     kb = InlineKeyboardMarkup([[InlineKeyboardButton("🎵 Open Music WebApp", url=deeplink)]])
     await update.message.reply_text(
         f"Welcome, {user.first_name}! Tap the button to open the WebApp for {chat.title if chat.type in ['group', 'supergroup'] else 'your session'}.",
