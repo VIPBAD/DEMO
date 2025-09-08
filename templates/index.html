@@ -49,6 +49,7 @@
     useridEl.textContent = "";
     photoResultEl.textContent = "Open this page from inside Telegram to auto-load your profile. Or use manual test above.";
     sendClientDebug({ ua, note: "no Telegram.WebApp" });
+    console.log("Telegram.WebApp not detected. Ensure you're opening via the bot.");
   } else {
     try { tg.expand(); } catch (e) {}
     const unsafe = tg.initDataUnsafe || null;
@@ -58,6 +59,7 @@
     initSignedEl.textContent = signed ? JSON.stringify(signed, null, 2) : "not provided";
 
     sendClientDebug({ ua, note: "has Telegram.WebApp", initDataUnsafe: unsafe });
+    console.log("Telegram.WebApp detected. initDataUnsafe:", unsafe);
 
     const user = unsafe?.user || null;
     if (user && user.id) {
@@ -76,6 +78,7 @@
         .then(js => {
           photoResultEl.textContent = JSON.stringify(js, null, 2);
           avatarEl.src = (js && js.photo_url) ? js.photo_url : "/static/default-avatar.png";
+          console.log("Profile photo fetch result:", js);
         })
         .catch(err => {
           console.error("fetch error", err);
@@ -86,6 +89,7 @@
       initUnsafeEl.textContent = JSON.stringify(unsafe, null, 2);
       useridEl.textContent = "initDataUnsafe.user not present or missing id";
       photoResultEl.textContent = "user info not present in initDataUnsafe or missing id";
+      console.log("User data missing or invalid:", user);
     }
   }
 </script>
