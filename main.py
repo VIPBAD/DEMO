@@ -5,8 +5,7 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN", "8482046560:AAHDHQAgtnWNp7gQr7c5E6MKLtxn
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import CommandHandler, Application
-
-BOT_TOKEN = "YOUR_BOT_TOKEN"
+import os
 
 async def start(update, context):
     kb = InlineKeyboardMarkup(
