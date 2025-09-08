@@ -1,17 +1,23 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-from telegram import Update
 
 BOT_TOKEN = "8410391376:AAF2GqNdUnl1Rh8CZIYwiwj3PfPv27-Dcg8"
+BOT_USERNAME = "TGINLINEMUSICBOT"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    url = "https://demo-qled.onrender.com/"  # aapki deployed MiniApp URL
+    chat = update.effective_chat
+    user = update.effective_user
+
+    # WebApp URL with startapp=chat.id (for group context)
+    url = f"https://demo-qled.onrender.com/?startapp={chat.id}"
+
     kb = InlineKeyboardMarkup([
         [InlineKeyboardButton("🎵 Open Music WebApp", web_app=WebAppInfo(url=url))]
     ])
-    chat = update.effective_chat
+
     await update.message.reply_text(
-        f"Welcome to WebApp in {chat.title if chat.type != 'private' else 'your chat'}!",
+        f"Welcome {user.first_name}! Tap the button to open the WebApp for "
+        f"{chat.title if chat.type in ['group', 'supergroup'] else 'your session'}.",
         reply_markup=kb
     )
 
