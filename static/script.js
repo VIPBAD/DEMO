@@ -4,8 +4,6 @@
   const profileCard = document.getElementById('profile-card');
   const avatar = document.getElementById('avatar');
   const username = document.getElementById('username');
-  const favorites = document.getElementById('favorites');
-  const totalPlays = document.getElementById('total-plays');
 
   function show(v) {
     out.textContent = JSON.stringify(v, null, 2);
@@ -47,11 +45,7 @@
 
       profileCard.style.display = 'block';
       if (js.user) {
-        // Custom username with emojis
-        const customName = `("${js.user.first_name || 'User'} [🌸] '♥_♥'")`;
-        username.textContent = customName;
-        favorites.textContent = "0"; // Hardcoded for now; can be dynamic if stored
-        totalPlays.textContent = "1"; // Hardcoded for now; can be dynamic if stored
+        username.textContent = `("${js.user.first_name || 'User'} [🌸] '♥_♥'")`;
         if (js.profile_photo_url) {
           avatar.src = js.profile_photo_url;
         } else if (js.user.photo_url) {
