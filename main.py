@@ -22,25 +22,9 @@ app = Client(
 @app.on_message(filters.command("demo") & filters.private)
 async def demo_handler(client, message):
     kb = InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton("🚀 Open Music WebApp", web_app=WebAppInfo(url=WEBAPP_URL))]
-        ]
+        [[InlineKeyboardButton("🚀 Open Music WebApp", web_app=WebAppInfo(url=WEBAPP_URL))]]
     )
-    await message.reply_text(
-        "Click the button below to open the Music WebApp 👇", 
-        reply_markup=kb
-    )
-
-
-# /openweb command (works everywhere)
-@app.on_message(filters.command("openweb"))
-async def openweb_handler(client, message):
-    kb = InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton("🎵 Open WebApp", web_app=WebAppInfo(url=WEBAPP_URL))]
-        ]
-    )
-    await message.reply_text("Tap below:", reply_markup=kb)
+    await message.reply_text("Click below to open the WebApp 👇", reply_markup=kb)
 
 
 # Run Bot
