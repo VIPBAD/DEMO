@@ -1,20 +1,17 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CommandHandler, Application, ContextTypes
 
-BOT_TOKEN = "8482046560:AAHDHQAgtnWNp7gQr7c5E6MKLtxnvyytyDI"  # BotFather se naya token lo
+BOT_TOKEN = "8482046560:AAHDHQAgtnWNp7gQr7c5E6MKLtxnvyytyDI"
 
-WEBAPP_URL = "https://demo-qled.onrender.com"   # aapka FastAPI app
-DEEPLINK   = "https://t.me/ANONMUSIC11_BOT/MiniMusic"  # BotFather me banaya link
+DEEPLINK = "https://t.me/ANONMUSIC11_BOT/MiniMusic"  # BotFather ka WebApp link
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🎵 Open Music WebApp (in-app)", web_app=WebAppInfo(WEBAPP_URL))],
-        [InlineKeyboardButton("🔗 Open via deep link", url=DEEPLINK)]
+        [InlineKeyboardButton("🎵 Open Music WebApp", url=DEEPLINK)]
     ])
 
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="Tap the button below to open the Music WebApp:\n\n👉 Note: Tap (don’t long-press).",
+    await update.message.reply_text(
+        "Tap below to open the Music WebApp:\n\n👉 Note: Tap (don’t long-press).",
         reply_markup=kb
     )
 
