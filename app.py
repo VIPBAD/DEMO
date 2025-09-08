@@ -119,23 +119,13 @@ async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
-
-@app.post("/debug_client")
-async def debug_client(payload: dict):
-    # lightweight debugging endpoint used by client to log what it saw.
-    # We'll just print to server logs and return ok.
-    print("DEBUG CLIENT:", payload)
-    return {"ok": True}
-    
- 
-
 @app.post("/verify_init")
 async def verify_init(payload: dict):
     """
     Client should POST JSON:
       { "initData": "<initData string from tg.initData>", "initDataUnsafe": <object or null> }
     Returns JSON:
-      { "ok": True, "verified": True, "data": {...}, "profile_photo_url": "...", "room_id": "...", "listener_count": 1 }
+      { "ok": True, "verified": True, "data": {...}, "profile_photo_url": "..."}
     """
     init_data = payload.get("initData") or ""
     try:
@@ -143,9 +133,11 @@ async def verify_init(payload: dict):
     except HTTPException as e:
         return JSONResponse({"ok": False, "error": e.detail}, status_code=e.status_code)
 
+    # parsed now contains keys like auth_date, user, etc as strings.
+    # often parsed contains "user" as a JSON string (initData is k=v pairs, where user is urlencoded JSON)
     result = {"ok": True, "verified": True, "data": parsed}
 
-    # Extract user and room_id from initData
+    # If we have a user id inside parsed (sometimes inside 'user' field as JSON), try to extract
     import json
     user_id = None
     room_id = None
@@ -175,6 +167,15 @@ async def verify_init(payload: dict):
     # Add room_id and simulate listener count
     if room_id:
         result["room_id"] = room_id
-    result["listener_count"] = 1  # Simulate 1 listener; you can replace with real-time data if available
+    result["listener_count"] = 1  # Simulate; replace with real logic if needed
 
+    print(f"DEBUG: user_id={user_id}, room_id={room_id}")  # Added for logs debugging
     return JSONResponse(result)
+
+
+@app.post("/debug_client")
+async def debug_client(payload: dict):
+    # lightweight debugging endpoint used by client to log what it saw.
+    # We'll just print to server logs and return ok.
+    print("DEBUG CLIENT:", payload)
+    return {"ok": True}
