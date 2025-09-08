@@ -1,67 +1,90 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Music Web App — Profile</title>
-  <style>
-    body{font-family:system-ui, Arial;margin:0;background:linear-gradient(#101015,#221233);color:#fff}
-    .card{max-width:450px;margin:40px auto;padding:20px;border-radius:12px;background:rgba(255,255,255,0.03);box-shadow:0 6px 30px rgba(0,0,0,0.5)}
-    .avatar{width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,0.12)}
-    .row{display:flex;gap:16px;align-items:center}
-    .name{font-size:20px;font-weight:700}
-    .username{font-size:13px;opacity:0.85}
-    .meta{margin-top:14px;display:flex;gap:12px}
-    .btn{padding:8px 12px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.03)}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Music Web App — Profile</title>
+<style>
+  body{font-family:system-ui,Arial;margin:0;background:linear-gradient(#12081a,#24132b);color:#fff;padding:18px}
+  .card{max-width:760px;margin:12px auto;padding:16px;border-radius:12px;background:rgba(255,255,255,0.03);box-shadow:0 6px 24px rgba(0,0,0,0.6)}
+  img.avatar{width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,0.08)}
+  pre{background:#0b0b0f;padding:12px;border-radius:8px;overflow:auto}
+  .row{display:flex;gap:12px;align-items:center}
+  .warn{color:#ff9b9b}
+  .small{font-size:13px;color:#ddd}
+</style>
 </head>
 <body>
-  <div class="card" id="profileCard">
+  <div class="card">
+    <h2>WebApp Debug / Profile</h2>
     <div class="row">
       <img id="avatar" class="avatar" src="/static/default-avatar.png" alt="avatar">
       <div>
-        <div id="fullname" class="name">Loading...</div>
-        <div id="username" class="username"></div>
+        <div id="fullname" style="font-weight:700">—</div>
+        <div id="username" style="opacity:0.9;">—</div>
+        <div id="userid" class="small">—</div>
       </div>
     </div>
 
-    <div class="meta">
-      <div class="btn" id="favorites">♥ Favorites: 0</div>
-      <div class="btn" id="recents">⟳ Recents: 0</div>
-    </div>
+    <h3>Init data (unsafe)</h3>
+    <pre id="initUnsafe">not available</pre>
+
+    <h3>Init data (signed)</h3>
+    <pre id="initSigned">not available</pre>
+
+    <h3>GET /get_profile_photo result</h3>
+    <pre id="photoResult">not called yet</pre>
+
+    <h3>Instructions</h3>
+    <ul>
+      <li>Open this page <strong>inside Telegram</strong> using the short link: <code>t.me/YourBot/ShortName</code></li>
+      <li>Or test backend directly: <code>curl "https://demo-qled.onrender.com/get_profile_photo?user_id=8016771632"</code></li>
+    </ul>
   </div>
 
 <script>
   const tg = window.Telegram?.WebApp;
-  const fullname = document.getElementById('fullname');
-  const username = document.getElementById('username');
-  const avatar = document.getElementById('avatar');
+  const initUnsafeEl = document.getElementById('initUnsafe');
+  const initSignedEl = document.getElementById('initSigned');
+  const fullnameEl = document.getElementById('fullname');
+  const usernameEl = document.getElementById('username');
+  const useridEl = document.getElementById('userid');
+  const avatarEl = document.getElementById('avatar');
+  const photoResultEl = document.getElementById('photoResult');
 
   if(!tg){
-    fullname.textContent = "Open inside Telegram";
-    avatar.src = "/static/default-avatar.png";
+    initUnsafeEl.textContent = "Telegram.WebApp not available — open via t.me link inside Telegram app.";
+    initSignedEl.textContent = "n/a";
+    fullnameEl.textContent = "Open inside Telegram";
+    usernameEl.textContent = "";
+    useridEl.textContent = "";
   } else {
     try { tg.expand(); } catch(e){}
+    const unsafe = tg.initDataUnsafe || null;
+    initUnsafeEl.textContent = JSON.stringify(unsafe, null, 2);
+    initSignedEl.textContent = tg.initData || "signed initData not provided";
 
-    const unsafe = tg.initDataUnsafe || {};
-    const user = unsafe.user || {};
-    const userId = user.id;
-    const name = ((user.first_name || "") + (user.last_name ? " " + user.last_name : "")).trim();
-    const uname = user.username ? "@" + user.username : "";
+    const user = unsafe?.user || null;
+    if(user){
+      fullnameEl.textContent = [user.first_name, user.last_name].filter(Boolean).join(' ') || "Unknown";
+      usernameEl.textContent = user.username ? ("@" + user.username) : "";
+      useridEl.textContent = "user.id = " + user.id;
 
-    fullname.textContent = name || "Unknown User";
-    username.textContent = uname;
-
-    if(userId){
-      fetch('/get_profile_photo?user_id=' + encodeURIComponent(userId))
+      // fetch profile photo from backend (same domain)
+      photoResultEl.textContent = "loading...";
+      fetch('/get_profile_photo?user_id=' + encodeURIComponent(user.id), {cache: "no-store", credentials: "same-origin"})
         .then(r => r.json())
         .then(js => {
-          if(js && js.photo_url) avatar.src = js.photo_url;
-          else avatar.src = "/static/default-avatar.png";
+          photoResultEl.textContent = JSON.stringify(js, null, 2);
+          avatarEl.src = (js && js.photo_url) ? js.photo_url : "/static/default-avatar.png";
         })
-        .catch(e => { console.error(e); avatar.src = "/static/default-avatar.png"; });
+        .catch(err => {
+          console.error("fetch error", err);
+          photoResultEl.textContent = "fetch error: " + (err.message || err);
+          avatarEl.src = "/static/default-avatar.png";
+        });
     } else {
-      avatar.src = "/static/default-avatar.png";
+      useridEl.textContent = "initDataUnsafe.user not present";
     }
   }
 </script>
