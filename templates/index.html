@@ -1,106 +1,125 @@
-<script>
-  const initUnsafeEl = document.getElementById('initUnsafe');
-  const initSignedEl = document.getElementById('initSigned');
-  const fullnameEl = document.getElementById('fullname');
-  const usernameEl = document.getElementById('username');
-  const useridEl = document.getElementById('userid');
-  const avatarEl = document.getElementById('avatar');
-  const photoResultEl = document.getElementById('photoResult');
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Telegram WebApp Debug</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif; background:#1e2933; color:#e6eef6; padding:20px; }
+    .card{ background:#111827; padding:12px; border-radius:8px; margin:8px 0;}
+    img.avatar{ width:72px; height:72px; border-radius:50%; object-fit:cover; display:inline-block; vertical-align:middle; }
+    pre { white-space:pre-wrap; word-break:break-word; color:#d1e7ff; }
+  </style>
+</head>
+<body>
+  <h2>Telegram WebApp debug</h2>
 
-  // Manual test handler
-  document.getElementById('manualBtn').addEventListener('click', () => {
-    const uid = document.getElementById('manualUserId').value.trim();
-    if (!uid) {
-      document.getElementById('manualMsg').textContent = 'Please enter a user id.';
-      return;
-    }
-    document.getElementById('manualMsg').textContent = 'loading...';
-    fetch('/get_profile_photo?user_id=' + encodeURIComponent(uid), { cache: "no-store", credentials: "same-origin" })
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
-        return r.json();
-      })
-      .then(js => {
-        document.getElementById('manualMsg').textContent = JSON.stringify(js);
-        avatarEl.src = (js && js.photo_url) ? js.photo_url : "/static/default-avatar.png";
-        fullnameEl.textContent = 'Manual test';
-        usernameEl.textContent = '';
-        useridEl.textContent = 'user.id = ' + uid;
-        console.log('Manual fetch result:', js);
-      })
-      .catch(err => {
-        document.getElementById('manualMsg').textContent = 'Error: ' + err.message;
-        console.error('Manual fetch error:', err);
+  <div class="card">
+    <div><strong>ua:</strong> <span id="ua">–</span></div>
+    <div><strong>Telegram.WebApp present:</strong> <span id="hasWebApp">–</span></div>
+  </div>
+
+  <div class="card">
+    <div><strong>initDataUnsafe:</strong></div>
+    <pre id="initUnsafe">-</pre>
+  </div>
+
+  <div class="card">
+    <div><strong>photoResult:</strong></div>
+    <pre id="photoResult">-</pre>
+  </div>
+
+  <div class="card">
+    <img id="avatar" class="avatar" src="/static/default-avatar.png" alt="avatar" />
+    <div id="fullname">Name</div>
+    <div id="username">@username</div>
+    <div id="userid">user.id</div>
+  </div>
+
+  <div class="card">
+    <button id="manualBtn">Manual fetch test</button>
+    <input id="manualUserId" placeholder="paste user id" />
+    <div id="manualMsg"></div>
+  </div>
+
+  <script>
+  // defensive helper so any early error shows on the page
+  function showError(msg){
+    try { document.getElementById('photoResult').textContent = 'ERROR: ' + msg; } catch(e) { console.error(e); }
+    console.error(msg);
+  }
+
+  try {
+    const ua = navigator.userAgent || "";
+    document.getElementById('ua').textContent = ua;
+
+    const tg = window.Telegram?.WebApp || null;
+    document.getElementById('hasWebApp').textContent = !!tg;
+
+    function sendClientDebug(obj) {
+      fetch('/debug_client', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(obj)
+      }).catch(e => {
+        console.warn('debug_client post failed', e);
+        showError('debug_client post failed: ' + e.message);
       });
-  });
-
-  // Helper to send debug info to server
-  function sendClientDebug(obj) {
-    fetch('/debug_client', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(obj)
-    })
-      .then(r => {
-        if (!r.ok) throw new Error(`Debug POST failed with status: ${r.status}`);
-        console.log('Debug client sent:', obj);
-      })
-      .catch(e => console.error('Debug client post failed:', e));
-  }
-
-  console.log('Script started');
-  const tg = window.Telegram?.WebApp;
-  const ua = navigator.userAgent || "";
-
-  if (!tg) {
-    console.log('Telegram.WebApp not detected. Ensure you\'re opening via the bot.');
-    initUnsafeEl.textContent = "Telegram.WebApp not available — open via the bot's WebApp button inside the Telegram app.";
-    initSignedEl.textContent = "not available";
-    fullnameEl.textContent = "Open inside Telegram";
-    usernameEl.textContent = "";
-    useridEl.textContent = "";
-    photoResultEl.textContent = "Open this page from inside Telegram to auto-load your profile. Or use manual test above.";
-    sendClientDebug({ ua, note: "no Telegram.WebApp" });
-  } else {
-    console.log('Telegram.WebApp detected, initializing...');
-    try { tg.expand(); } catch (e) { console.warn('tg.expand failed:', e); }
-    const unsafe = tg.initDataUnsafe || null;
-    const signed = tg.initData || null;
-
-    initUnsafeEl.textContent = JSON.stringify(unsafe, null, 2);
-    initSignedEl.textContent = signed ? JSON.stringify(signed, null, 2) : "not provided";
-    sendClientDebug({ ua, note: "has Telegram.WebApp", initDataUnsafe: unsafe });
-    console.log('initDataUnsafe:', unsafe);
-
-    const user = unsafe?.user || null;
-    if (user && user.id) {
-      console.log('User data found:', user);
-      const fullname = [user.first_name, user.last_name].filter(Boolean).join(' ');
-      fullnameEl.textContent = fullname || "Unknown";
-      usernameEl.textContent = user.username ? ("@" + user.username) : "";
-      useridEl.textContent = "user.id = " + user.id;
-
-      photoResultEl.textContent = "loading...";
-      fetch('/get_profile_photo?user_id=' + encodeURIComponent(user.id), { cache: "no-store", credentials: "same-origin" })
-        .then(r => {
-          if (!r.ok) throw new Error("network " + r.status);
-          return r.json();
-        })
-        .then(js => {
-          photoResultEl.textContent = JSON.stringify(js, null, 2);
-          avatarEl.src = (js && js.photo_url) ? js.photo_url : "/static/default-avatar.png";
-          console.log('Profile photo fetch result:', js);
-        })
-        .catch(err => {
-          console.error('fetch error:', err);
-          photoResultEl.textContent = "fetch error: " + (err.message || err);
-          avatarEl.src = "/static/default-avatar.png";
-        });
-    } else {
-      console.log('User data missing or invalid:', user);
-      initUnsafeEl.textContent = JSON.stringify(unsafe, null, 2);
-      useridEl.textContent = "initDataUnsafe.user not present or missing id";
-      photoResultEl.textContent = "user info not present in initDataUnsafe or missing id";
     }
+
+    if (!tg) {
+      document.getElementById('initUnsafe').textContent = "Telegram.WebApp not available — open via the bot's WebApp button inside the Telegram app.";
+      sendClientDebug({ ua, note: "no Telegram.WebApp" });
+      // still let the user manually test
+    } else {
+      try { tg.expand(); } catch (e) {}
+      const unsafe = tg.initDataUnsafe || null;
+      document.getElementById('initUnsafe').textContent = JSON.stringify(unsafe, null, 2);
+      sendClientDebug({ ua, note: "has Telegram.WebApp", initDataUnsafe: unsafe });
+
+      const user = unsafe?.user || null;
+      if (user && user.id) {
+        const fullname = [user.first_name, user.last_name].filter(Boolean).join(' ');
+        document.getElementById('fullname').textContent = fullname || "Unknown";
+        document.getElementById('username').textContent = user.username ? ("@" + user.username) : "";
+        document.getElementById('userid').textContent = "user.id = " + user.id;
+
+        document.getElementById('photoResult').textContent = "loading...";
+        fetch('/get_profile_photo?user_id=' + encodeURIComponent(user.id), { cache: "no-store", credentials: "same-origin" })
+          .then(r => {
+            if (!r.ok) throw new Error("network " + r.status);
+            return r.json();
+          })
+          .then(js => {
+            document.getElementById('photoResult').textContent = JSON.stringify(js, null, 2);
+            document.getElementById('avatar').src = (js && js.photo_url) ? js.photo_url : "/static/default-avatar.png";
+            console.log("Profile photo fetch result:", js);
+          })
+          .catch(err => {
+            showError("fetch error: " + (err.message || err));
+          });
+      } else {
+        document.getElementById('photoResult').textContent = "user info not present in initDataUnsafe or missing id";
+        console.log("User data missing or invalid:", user);
+      }
+    }
+
+    document.getElementById('manualBtn').addEventListener('click', () => {
+      const uid = document.getElementById('manualUserId').value.trim();
+      if (!uid) { document.getElementById('manualMsg').textContent = 'Please enter a user id.'; return; }
+      document.getElementById('manualMsg').textContent = 'loading...';
+      fetch('/get_profile_photo?user_id=' + encodeURIComponent(uid), { cache: "no-store", credentials: "same-origin" })
+        .then(r => r.json())
+        .then(js => {
+          document.getElementById('manualMsg').textContent = JSON.stringify(js);
+          document.getElementById('avatar').src = (js && js.photo_url) ? js.photo_url : "/static/default-avatar.png";
+        })
+        .catch(err => { document.getElementById('manualMsg').textContent = 'Error: ' + err.message; });
+    });
+
+  } catch (err) {
+    showError('startup error: ' + (err.message || err));
   }
-</script>
+  </script>
+</body>
+</html>
