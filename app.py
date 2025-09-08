@@ -1,5 +1,6 @@
 import os
-import hmac, hashlib
+import hmac
+import hashlib
 from typing import Optional
 from datetime import datetime, timedelta
 
@@ -35,12 +36,11 @@ def verify_init_data(init_data: str) -> dict:
     if not init_data or not init_data.strip():
         raise HTTPException(status_code=400, detail="init_data missing or empty")
 
-    parts = init_data.split('\n')
+    # Split and parse key-value pairs
+    parts = [p for p in init_data.split('&') if '=' in p]
     data = {}
     hash_value = None
     for p in parts:
-        if '=' not in p:
-            continue
         k, v = p.split('=', 1)
         if k == 'hash':
             hash_value = v
@@ -50,8 +50,9 @@ def verify_init_data(init_data: str) -> dict:
     if not hash_value:
         raise HTTPException(status_code=400, detail="init_data missing hash")
 
+    # Reconstruct data_check_string
     items = sorted([f"{k}={v}" for k, v in data.items()])
-    data_check_string = '\n'.join(items).encode('utf-8')
+    data_check_string = '&'.join(items).encode('utf-8')
 
     secret_key = _make_secret_key(BOT_TOKEN)
     computed_hash = hmac.new(secret_key, data_check_string, hashlib.sha256).hexdigest()
@@ -108,7 +109,7 @@ async def verify_init(payload: dict):
     user_id = None
     if "user" in parsed:
         try:
-            userobj = eval(parsed["user"])
+            userobj = eval(parsed["user"])  # Parse user object
             user_id = str(userobj.get("id"))
             result["user"] = userobj
         except Exception:
