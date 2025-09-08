@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Music Web App — Profile</title>
+  <style>
+    body{font-family:system-ui, Arial;margin:0;background:linear-gradient(#101015,#221233);color:#fff}
+    .card{max-width:450px;margin:40px auto;padding:20px;border-radius:12px;background:rgba(255,255,255,0.03);box-shadow:0 6px 30px rgba(0,0,0,0.5)}
+    .avatar{width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,0.12)}
+    .row{display:flex;gap:16px;align-items:center}
+    .name{font-size:20px;font-weight:700}
+    .username{font-size:13px;opacity:0.85}
+    .meta{margin-top:14px;display:flex;gap:12px}
+    .btn{padding:8px 12px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.03)}
+  </style>
+</head>
+<body>
+  <div class="card" id="profileCard">
+    <div class="row">
+      <img id="avatar" class="avatar" src="" alt="avatar">
+      <div>
+        <div id="fullname" class="name">Loading...</div>
+        <div id="username" class="username"></div>
+      </div>
+    </div>
+
+    <div class="meta">
+      <div class="btn" id="favorites">♥ Favorites: 0</div>
+      <div class="btn" id="recents">⟳ Recents: 0</div>
+    </div>
+  </div>
+
+<script>
+  // Wait for Telegram WebApp object (opened in Telegram)
+  const tg = window.Telegram?.WebApp;
+  if(!tg){
+    document.getElementById('fullname').textContent = "Open inside Telegram";
+  } else {
+    tg.expand(); // optional: expand webapp
+    // initDataUnsafe contains a parsed user object (unsafe but convenient)
+    const unsafe = tg.initDataUnsafe || {};
+    const user = unsafe.user || {};
+    const userId = user.id;
+    const name = (user.first_name || "") + (user.last_name ? " " + user.last_name : "");
+    const username = user.username ? "@" + user.username : "";
+
+    document.getElementById('fullname').textContent = name || "Unknown User";
+    document.getElementById('username').textContent = username;
+
+    // ask backend for profile photo URL
+    if(userId){
+      fetch('/get_profile_photo?user_id=' + encodeURIComponent(userId))
+        .then(r=>r.json())
+        .then(data=>{
+          if(data.photo_url){
+            document.getElementById('avatar').src = data.photo_url;
+          } else {
+            document.getElementById('avatar').src = "default-avatar.png"; // fallback
+          }
+          // populate other UI parts if needed
+        })
+        .catch(err=>{
+          console.error(err);
+          document.getElementById('avatar').src = "default-avatar.png";
+        });
+    } else {
+      document.getElementById('avatar').src = "default-avatar.png";
+    }
+  }
+</script>
+</body>
+</html>
