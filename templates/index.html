@@ -5,20 +5,39 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>WebApp — verify initData</title>
   <style>
-    body { font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif; background:#0f172a; color:#e6eef6; padding:20px;}
-    pre { background:#0b1220; padding:12px; border-radius:8px; }
-    img.avatar{ width:96px; height:96px; border-radius:50%; object-fit:cover; display:block; margin:12px 0;}
+    body { font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif; background:#0f172a; color:#e6eef6; padding:20px; display:flex; flex-direction:column; align-items:center; }
+    .app-title { font-size: 1.5em; margin-bottom: 10px; }
+    .room-info { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; width: 100%; max-width: 300px; text-align: center; }
+    .live-btn { background: #4a90e2; color: white; padding: 5px 15px; border-radius: 15px; margin-left: 10px; }
+    .listener-count { color: #4a90e2; }
+    .profile { display: flex; align-items: center; margin-bottom: 20px; }
+    .avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; margin-right: 10px; }
+    .username { font-weight: bold; }
+    pre { background:#0b1220; padding:12px; border-radius:8px; width: 100%; max-width: 300px; }
   </style>
 </head>
 <body>
-  <h2>Telegram WebApp debug / verify</h2>
+  <h2 class="app-title">MiniMusic 🎵</h2>
   <div id="status">initializing...</div>
+  <div id="room-info" class="room-info" style="display:none;">
+    <span id="room-id"></span> <span class="live-btn">LIVE</span> <span class="listener-count" id="listener-count">0 listener</span>
+  </div>
+  <div id="profile" class="profile" style="display:none;">
+    <img id="avatar" class="avatar" src="/static/default-avatar.png" alt="avatar" />
+    <span id="username" class="username"></span>
+  </div>
   <pre id="out">waiting...</pre>
-  <img id="avatar" class="avatar" src="/static/default-avatar.png" alt="avatar" style="display:none" />
   <script>
     (async function(){
       const out = document.getElementById('out');
       const status = document.getElementById('status');
+      const roomInfo = document.getElementById('room-info');
+      const roomIdSpan = document.getElementById('room-id');
+      const listenerCountSpan = document.getElementById('listener-count');
+      const profile = document.getElementById('profile');
+      const avatarImg = document.getElementById('avatar');
+      const usernameSpan = document.getElementById('username');
+
       function show(v){ out.textContent = JSON.stringify(v, null, 2); }
 
       const tg = window.Telegram?.WebApp || null;
@@ -28,7 +47,6 @@
       show({ ua: navigator.userAgent, hasWebApp: !!tg, initDataUnsafe: unsafe ? unsafe : null, initData: signed ? signed : null });
       status.textContent = "collected client values — sending to server for verification (if available)...";
 
-      // If we have signed init data, send to backend to verify and optionally fetch profile
       if (signed) {
         try {
           const r = await fetch('/verify_init', {
@@ -38,12 +56,23 @@
           });
           const js = await r.json();
           show(js);
-          if (js.profile_photo_url) {
-            const img = document.getElementById('avatar');
-            img.src = js.profile_photo_url;
-            img.style.display = 'block';
+          if (js.ok) {
+            status.textContent = "verified";
+            if (js.room_id) {
+              roomIdSpan.textContent = `Room - ${js.room_id}`;
+              listenerCountSpan.textContent = `${js.listener_count} listener${js.listener_count > 1 ? 's' : ''}`;
+              roomInfo.style.display = 'block';
+            }
+            if (js.user) {
+              usernameSpan.textContent = js.user.username || js.user.first_name || 'Anonymous';
+              profile.style.display = 'flex';
+            }
+            if (js.profile_photo_url) {
+              avatarImg.src = js.profile_photo_url;
+            }
+          } else {
+            status.textContent = "verification failed";
           }
-          status.textContent = js.ok ? "verified" : "verification failed";
         } catch (e) {
           status.textContent = "network error: " + e.message;
           show({ error: e.message });
@@ -52,7 +81,6 @@
         status.textContent = "no signed initData present; open inside Telegram using web_app button (tap, don't long-press).";
       }
 
-      // always send debug info to server so you can inspect logs
       fetch('/debug_client', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ua:navigator.userAgent, initDataUnsafe: unsafe, initDataSigned: signed ? true : false }) }).catch(()=>{});
     })();
   </script>
