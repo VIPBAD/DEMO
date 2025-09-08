@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: mini-app-music-player
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    plan: free
