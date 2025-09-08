@@ -110,11 +110,5 @@ async def health():
 
 
 if __name__ == "__main__":
-    # only use this for local/dev quick runs; production should use uvicorn/gunicorn as shown below
-    port = int(os.environ.get("PORT", 5000))
-    # make sure uvicorn is available in your environment
-    import uvicorn
-
-    # configure basic logging so uvicorn.error logger exists even when run directly
-    logging.basicConfig(level=logging.INFO)
-    uvicorn.run("app:app", host="0.0.0.0", port=port, log_level="info")
+    PORT = int(os.environ.get("PORT", 5050))
+    app.run(host="0.0.0.0", port=PORT, debug=True)
