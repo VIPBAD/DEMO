@@ -1,9 +1,6 @@
-# app.py
 import os
-import asyncio
 from typing import Optional
 from datetime import datetime, timedelta
-import logging
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -25,17 +22,13 @@ TELEGRAM_FILE = f"https://api.telegram.org/file/bot{BOT_TOKEN}"
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # change in production
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_origins=["*"],  # production vich apna domain daalna
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# use a named logger (uvicorn's error logger is a good choice in many hosts)
-logger = logging.getLogger("uvicorn.error")
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# mount static and templates
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
@@ -45,18 +38,14 @@ CACHE_TTL = timedelta(minutes=30)
 
 
 async def _fetch_user_profile_file_path(user_id: str) -> Optional[str]:
-    """Async fetch largest profile photo file_path from Telegram; cached."""
-    # check cache
     entry = _profile_cache.get(user_id)
     if entry:
         file_path, expires_at = entry
         if datetime.utcnow() < expires_at:
             return file_path
-        # expired -> remove
         _profile_cache.pop(user_id, None)
 
     async with httpx.AsyncClient(timeout=8) as client:
-        # getUserProfilePhotos
         r = await client.get(f"{TELEGRAM_API}/getUserProfilePhotos", params={"user_id": user_id, "limit": 1})
         r.raise_for_status()
         js = r.json()
@@ -65,7 +54,6 @@ async def _fetch_user_profile_file_path(user_id: str) -> Optional[str]:
             return None
 
         photos = js["result"]["photos"]
-        # largest size is last element in list
         file_id = photos[0][-1]["file_id"]
         gf = await client.get(f"{TELEGRAM_API}/getFile", params={"file_id": file_id})
         gf.raise_for_status()
@@ -81,7 +69,6 @@ async def _fetch_user_profile_file_path(user_id: str) -> Optional[str]:
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    # render webapp page; same template as before
     return templates.TemplateResponse("index.html", {"request": request})
 
 
@@ -95,20 +82,12 @@ async def get_profile_photo(user_id: str):
             return JSONResponse({"photo_url": None})
         file_url = f"{TELEGRAM_FILE}/{file_path}"
         return JSONResponse({"photo_url": file_url})
-    except httpx.HTTPStatusError as e:
-        logger.error("Telegram API HTTP error: %s", e)
+    except httpx.HTTPStatusError:
         return JSONResponse({"error": "telegram api error"}, status_code=502)
-    except Exception as e:
-        logger.exception("Unexpected error")
+    except Exception:
         return JSONResponse({"error": "internal server error"}, status_code=500)
 
 
-# optional health
 @app.get("/health")
 async def health():
     return {"status": "ok"}
-
-
-if __name__ == "__main__":
-    PORT = int(os.environ.get("PORT", 5050))
-    app.run(host="0.0.0.0", port=PORT, debug=True)
