@@ -1,8 +1,9 @@
-# main.py
+# app.py
 import os
 import asyncio
 from typing import Optional
 from datetime import datetime, timedelta
+import logging
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -28,6 +29,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# use a named logger (uvicorn's error logger is a good choice in many hosts)
+logger = logging.getLogger("uvicorn.error")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -92,13 +96,10 @@ async def get_profile_photo(user_id: str):
         file_url = f"{TELEGRAM_FILE}/{file_path}"
         return JSONResponse({"photo_url": file_url})
     except httpx.HTTPStatusError as e:
-        app_logger = app.logger if hasattr(app, "logger") else None
-        if app_logger:
-            app_logger.error("Telegram API HTTP error: %s", e)
+        logger.error("Telegram API HTTP error: %s", e)
         return JSONResponse({"error": "telegram api error"}, status_code=502)
     except Exception as e:
-        if hasattr(app, "logger"):
-            app.logger.exception("Unexpected error")
+        logger.exception("Unexpected error")
         return JSONResponse({"error": "internal server error"}, status_code=500)
 
 
@@ -106,3 +107,14 @@ async def get_profile_photo(user_id: str):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+if __name__ == "__main__":
+    # only use this for local/dev quick runs; production should use uvicorn/gunicorn as shown below
+    port = int(os.environ.get("PORT", 5000))
+    # make sure uvicorn is available in your environment
+    import uvicorn
+
+    # configure basic logging so uvicorn.error logger exists even when run directly
+    logging.basicConfig(level=logging.INFO)
+    uvicorn.run("app:app", host="0.0.0.0", port=port, log_level="info")
