@@ -1,35 +1,51 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+# pyro_webapp_bot.py
+import os
+from pyrogram import Client, filters
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
-# ⚠️ Important: apna bot token yahan set karo (ya environment variable se lo)
-BOT_TOKEN = "8482046560:AAHDHQAgtnWNp7gQr7c5E6MKLtxnvyytyDI"
+# Get token from env for safety (recommended)
+BOT_TOKEN = os.environ.get("BOT_TOKEN") or "8482046560:AAHDHQAgtnWNp7gQr7c5E6MKLtxnvyytyDI"
+# Replace above hardcoded token with env var in production.
 
-# WebApp URL (jo BotFather vich set kita hai)
-WEBAPP_URL = "https://demo-qled.onrender.com/"
+# Your webapp URL (set this in BotFather as well)
+WEBAPP_URL = os.environ.get("WEBAPP_URL") or "https://demo-qled.onrender.com/"
 
-# /demo command
-async def demo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# Create Pyrogram Client for bot
+app = Client("musicbot", bot_token=BOT_TOKEN)
+
+
+# /demo command handler
+@app.on_message(filters.command("demo") & filters.private)
+async def demo_handler(client, message):
     kb = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("🚀 Open Music WebApp", web_app=WebAppInfo(url=WEBAPP_URL))]]
+        [
+            [
+                InlineKeyboardButton(
+                    "🚀 Open Music WebApp",
+                    web_app=WebAppInfo(url=WEBAPP_URL)
+                )
+            ]
+        ]
     )
-    await update.message.reply_text(
-        "Click the button below to open the Music WebApp 👇",
-        reply_markup=kb
-    )
+    await message.reply_text("Click the button below to open the Music WebApp 👇", reply_markup=kb)
 
-# Optional: still keep /openweb if you want
-async def openweb(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+# optional /openweb (works in groups and private)
+@app.on_message(filters.command("openweb"))
+async def openweb_handler(client, message):
     kb = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("🎵 Open WebApp", web_app=WebAppInfo(url=WEBAPP_URL))]]
+        [
+            [
+                InlineKeyboardButton(
+                    "🎵 Open WebApp",
+                    web_app=WebAppInfo(url=WEBAPP_URL)
+                )
+            ]
+        ]
     )
-    await update.message.reply_text("Tap below:", reply_markup=kb)
+    await message.reply_text("Tap below:", reply_markup=kb)
+
 
 if __name__ == "__main__":
-    app = Application.builder().token(BOT_TOKEN).build()
-
-    # Register commands
-    app.add_handler(CommandHandler("demo", demo))
-    app.add_handler(CommandHandler("openweb", openweb))
-
-    print("Bot running... use /demo in Telegram to test")
-    app.run_polling()
+    print("Pyrogram bot starting. Use /demo in a private chat with the bot.")
+    app.run()
