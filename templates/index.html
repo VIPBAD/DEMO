@@ -2,32 +2,88 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>WebApp — verify initData</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MiniMusic Profile</title>
   <style>
-    body { font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif; background:#0f172a; color:#e6eef6; padding:20px; display:flex; flex-direction:column; align-items:center; }
-    .app-title { font-size: 1.5em; margin-bottom: 10px; }
-    .room-info { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; width: 100%; max-width: 300px; text-align: center; }
-    .live-btn { background: #4a90e2; color: white; padding: 5px 15px; border-radius: 15px; margin-left: 10px; }
-    .listener-count { color: #4a90e2; }
-    .profile { display: flex; align-items: center; margin-bottom: 20px; }
-    .avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; margin-right: 10px; }
-    .username { font-weight: bold; }
-    pre { background:#0b1220; padding:12px; border-radius:8px; width: 100%; max-width: 300px; }
-    #status { font-size: 1.1em; margin-bottom: 10px; }
+    body {
+      font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+      background: #2a1f4d; /* Dark purple background */
+      color: #ffffff;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .profile-card {
+      background: rgba(255, 255, 255, 0.1); /* Translucent white */
+      border-radius: 15px;
+      padding: 15px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 10px;
+      border: 2px solid #ffffff;
+    }
+    .username {
+      font-size: 1.2em;
+      margin: 10px 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      width: 100%;
+      margin-top: 10px;
+      color: #d3d3d3;
+    }
+    .stat-item {
+      font-size: 0.9em;
+    }
+    #status {
+      font-size: 1.1em;
+      margin-bottom: 10px;
+      color: #ff4444;
+    }
+    #status.success {
+      color: #4a90e2;
+    }
+    pre {
+      background: #1a0f33;
+      padding: 12px;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 400px;
+      color: #e6eef6;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
-  <h2 class="app-title">MiniMusic 🎵</h2>
-  <div id="status">initializing...</div>
-  <div id="room-info" class="room-info" style="display:none;">
-    <span id="room-id"></span> <span class="live-btn">LIVE</span> <span class="listener-count" id="listener-count">0 listener</span>
+  <div class="profile-card" id="profile-card" style="display: none;">
+    <img id="avatar" class="avatar" src="/static/default-avatar.png" alt="Profile Photo" />
+    <div class="username" id="username">("rp bad [🌸] '♥_♥'")</div>
+    <div class="stats">
+      <div class="stat-item">Favorites <span id="favorites">0</span></div>
+      <div class="stat-item">Total plays <span id="total-plays">1</span></div>
+    </div>
   </div>
-  <div id="profile" class="profile" style="display:none;">
-    <img id="avatar" class="avatar" src="/static/default-avatar.png" alt="avatar" />
-    <span id="username" class="username"></span>
-  </div>
-  <pre id="out">waiting...</pre>
+  <div id="status">Initializing...</div>
+  <pre id="out">Waiting...</pre>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="/static/script.js"></script>
 </body>
