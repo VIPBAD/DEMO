@@ -8,19 +8,10 @@ BOT_USERNAME = "ANONMUSIC11_BOT"
 SHORTNAME    = "MiniMusic"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # yaha payload generate karte hain (random id example)
-    payload = random.randint(1000000000, 9999999999)  # jaise 2146211959
-
+    payload = update.effective_user.id  # or random/session id
     deeplink = f"https://t.me/{BOT_USERNAME}/{SHORTNAME}?startapp={payload}"
-
-    kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🎵 Open Music WebApp", url=deeplink)]
-    ])
-
-    await update.message.reply_text(
-        f"Tap below to open your Music WebApp:\n\n(payload = {payload})",
-        reply_markup=kb
-    )
+    kb = InlineKeyboardMarkup([[InlineKeyboardButton("🎵 Open Music WebApp", url=deeplink)]])
+    await update.message.reply_text("Tap the button to open the WebApp (tap, don't long-press).", reply_markup=kb)
 
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
