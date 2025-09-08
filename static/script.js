@@ -1,4 +1,4 @@
-(async function(){
+(async function () {
   const out = document.getElementById('out');
   const status = document.getElementById('status');
   const roomInfo = document.getElementById('room-info');
@@ -8,7 +8,9 @@
   const avatarImg = document.getElementById('avatar');
   const usernameSpan = document.getElementById('username');
 
-  function show(v){ out.textContent = JSON.stringify(v, null, 2); }
+  function show(v) {
+    out.textContent = JSON.stringify(v, null, 2);
+  }
 
   const tg = window.Telegram?.WebApp || null;
   if (!tg) {
@@ -25,11 +27,11 @@
     return s && s.includes("hash=");
   }
 
-  // Show debug values
+  // Show initial debug values
   show({ ua: navigator.userAgent, hasWebApp: !!tg, initDataUnsafe: unsafe, initData: signed });
 
   if (!hasHash(signed)) {
-    status.textContent = "⚠️ Verification data missing.\nPlease open this WebApp by tapping the bot's WebApp button inside Telegram (do not long-press or open in browser).";
+    status.textContent = "⚠️ Verification data missing.\nPlease open this WebApp by tapping the bot's WebApp button inside Telegram.";
     return;
   }
 
@@ -38,7 +40,7 @@
   try {
     const r = await fetch('/verify_init', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ initData: signed, initDataUnsafe: unsafe })
     });
     const js = await r.json();
@@ -46,6 +48,7 @@
 
     if (js.ok) {
       status.textContent = "✅ Verified";
+      status.style.color = "#4a90e2"; // Green for success
 
       if (js.room_id) {
         roomIdSpan.textContent = `Room - ${js.room_id}`;
@@ -61,24 +64,28 @@
           avatarImg.src = user.photo_url;
         } else if (js.profile_photo_url) {
           avatarImg.src = js.profile_photo_url;
+        } else {
+          avatarImg.src = "/static/default-avatar.png";
         }
       }
     } else {
-      status.textContent = "❌ Verification failed";
+      status.textContent = `❌ Verification failed: ${js.error || 'Unknown error'}`;
+      status.style.color = "#ff4444"; // Red for error
     }
   } catch (e) {
     status.textContent = "Network error: " + e.message;
+    status.style.color = "#ff4444";
     show({ error: e.message });
   }
 
   // Send debug info silently
   fetch('/debug_client', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       ua: navigator.userAgent,
       initDataUnsafe: unsafe,
       initDataSigned: !!signed
     })
-  }).catch(()=>{});
+  }).catch(() => {});
 })();
