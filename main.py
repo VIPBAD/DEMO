@@ -1,7 +1,4 @@
-# --- Config ---
-API_ID = int(os.environ.get("API_ID", 25742938))  # apna API ID daalo
-API_HASH = os.environ.get("API_HASH", "b35b715fe8dc0a58e8048988286fc5b6")  # apna API Hash daalo
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "8482046560:AAHDHQAgtnWNp7gQr7c5E6MKLtxnvyytyDI")  # apna Bot Token daalo
+BOT_TOKEN = "8482046560:AAHDHQAgtnWNp7gQr7c5E6MKLtxnvyytyDI"  # apna Bot Token daalo
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import CommandHandler, Application
