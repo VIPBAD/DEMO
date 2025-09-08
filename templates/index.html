@@ -1,58 +1,3 @@
-<!doctype html>
-<html>
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Music Web App — Profile</title>
-<style>
-  body{font-family:system-ui,Arial;margin:0;background:linear-gradient(#12081a,#24132b);color:#fff;padding:18px}
-  .card{max-width:760px;margin:12px auto;padding:16px;border-radius:12px;background:rgba(255,255,255,0.03);box-shadow:0 6px 24px rgba(0,0,0,0.6)}
-  img.avatar{width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,0.08)}
-  pre{background:#0b0b0f;padding:12px;border-radius:8px;overflow:auto}
-  .row{display:flex;gap:12px;align-items:center}
-  .small{font-size:13px;color:#ddd}
-  input, button { font-family: inherit; }
-</style>
-</head>
-<body>
-  <div class="card">
-    <h2>WebApp Debug / Profile</h2>
-
-    <!-- Nice header with avatar + name + id -->
-    <div class="row" style="align-items:center;margin-bottom:10px">
-      <img id="avatar" class="avatar" src="/static/default-avatar.png" alt="avatar">
-      <div style="margin-left:12px">
-        <div id="fullname" style="font-weight:700;font-size:18px">Open inside Telegram</div>
-        <div id="username" style="opacity:0.9;color:#ddd;margin-top:4px">—</div>
-        <div id="userid" class="small" style="color:#bbb;margin-top:2px">—</div>
-      </div>
-    </div>
-
-    <h3>Init data (unsafe)</h3>
-    <pre id="initUnsafe">not available</pre>
-
-    <h3>Init data (signed)</h3>
-    <pre id="initSigned">not available</pre>
-
-    <h3>GET /get_profile_photo result</h3>
-    <pre id="photoResult">not called yet</pre>
-
-    <h3>Instructions</h3>
-    <ul>
-      <li>Open this page <strong>inside Telegram</strong> by clicking your bot's WebApp button (the inline WebApp button the bot sends).</li>
-      <li>If you're testing outside Telegram, use the manual tester below.</li>
-    </ul>
-
-    <!-- Manual test UI -->
-    <div style="margin-top:12px">
-      <strong>Manual test (outside Telegram)</strong><br/>
-      <input id="manualUserId" placeholder="Enter user_id to fetch profile photo" style="padding:8px;border-radius:6px;border:0;outline:0;width:58%" />
-      <button id="manualBtn" style="padding:8px 12px;border-radius:6px;border:0;margin-left:8px;cursor:pointer">Fetch</button>
-      <div id="manualMsg" style="margin-top:8px;font-size:13px;opacity:0.9"></div>
-    </div>
-
-  </div>
-
 <script>
   const initUnsafeEl = document.getElementById('initUnsafe');
   const initSignedEl = document.getElementById('initSigned');
@@ -62,12 +7,15 @@
   const avatarEl = document.getElementById('avatar');
   const photoResultEl = document.getElementById('photoResult');
 
-  // manual test handler
+  // Manual test handler
   document.getElementById('manualBtn').addEventListener('click', () => {
     const uid = document.getElementById('manualUserId').value.trim();
-    if(!uid){ document.getElementById('manualMsg').textContent = 'Please enter a user id.'; return; }
+    if (!uid) {
+      document.getElementById('manualMsg').textContent = 'Please enter a user id.';
+      return;
+    }
     document.getElementById('manualMsg').textContent = 'loading...';
-    fetch('/get_profile_photo?user_id=' + encodeURIComponent(uid), {cache: "no-store", credentials: "same-origin"})
+    fetch('/get_profile_photo?user_id=' + encodeURIComponent(uid), { cache: "no-store", credentials: "same-origin" })
       .then(r => r.json())
       .then(js => {
         document.getElementById('manualMsg').textContent = JSON.stringify(js);
@@ -81,11 +29,11 @@
       });
   });
 
-  // helper to send debug info to server
-  function sendClientDebug(obj){
+  // Helper to send debug info to server
+  function sendClientDebug(obj) {
     fetch('/debug_client', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(obj)
     }).catch(e => console.warn('debug_client post failed', e));
   }
@@ -100,30 +48,27 @@
     usernameEl.textContent = "";
     useridEl.textContent = "";
     photoResultEl.textContent = "Open this page from inside Telegram to auto-load your profile. Or use manual test above.";
-    // Post debug so server logs show this client UA
-    sendClientDebug({ua, note: "no Telegram.WebApp"});
+    sendClientDebug({ ua, note: "no Telegram.WebApp" });
   } else {
-    try { tg.expand(); } catch(e){}
+    try { tg.expand(); } catch (e) {}
     const unsafe = tg.initDataUnsafe || null;
     const signed = tg.initData || null;
 
     initUnsafeEl.textContent = JSON.stringify(unsafe, null, 2);
     initSignedEl.textContent = signed ? JSON.stringify(signed, null, 2) : "not provided";
 
-    // send debug to server: will include initDataUnsafe (so server logs can be inspected)
-    sendClientDebug({ua, note: "has Telegram.WebApp", initDataUnsafe: unsafe});
+    sendClientDebug({ ua, note: "has Telegram.WebApp", initDataUnsafe: unsafe });
 
     const user = unsafe?.user || null;
-    if (user) {
+    if (user && user.id) {
       const fullname = [user.first_name, user.last_name].filter(Boolean).join(' ');
       fullnameEl.textContent = fullname || "Unknown";
       usernameEl.textContent = user.username ? ("@" + user.username) : "";
       useridEl.textContent = "user.id = " + user.id;
 
-      // fetch profile photo from backend
+      // Fetch profile photo from backend
       photoResultEl.textContent = "loading...";
-      const endpoint = '/get_profile_photo?user_id=' + encodeURIComponent(user.id);
-      fetch(endpoint, {cache: "no-store", credentials: "same-origin"})
+      fetch('/get_profile_photo?user_id=' + encodeURIComponent(user.id), { cache: "no-store", credentials: "same-origin" })
         .then(r => {
           if (!r.ok) throw new Error("network " + r.status);
           return r.json();
@@ -139,10 +84,8 @@
         });
     } else {
       initUnsafeEl.textContent = JSON.stringify(unsafe, null, 2);
-      useridEl.textContent = "initDataUnsafe.user not present";
-      photoResultEl.textContent = "user info not present in initDataUnsafe";
+      useridEl.textContent = "initDataUnsafe.user not present or missing id";
+      photoResultEl.textContent = "user info not present in initDataUnsafe or missing id";
     }
   }
 </script>
-</body>
-</html>
