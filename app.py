@@ -1,12 +1,12 @@
-# server.py
-from flask import Flask, request, jsonify, render_template
-import requests
+# app.py
 import os
 from functools import lru_cache
 from dotenv import load_dotenv
+from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
+import requests
 import logging
 
-# Load .env in dev (optional)
 load_dotenv()
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
@@ -16,7 +16,11 @@ if not BOT_TOKEN:
 API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
+# Allow CORS for debugging; if you serve frontend from same origin you can disable or restrict this.
+CORS(app, resources={r"/*": {"origins": "*"}})
+
 logging.basicConfig(level=logging.INFO)
+
 
 @lru_cache(maxsize=1024)
 def fetch_profile_file_path(user_id: str):
@@ -36,9 +40,12 @@ def fetch_profile_file_path(user_id: str):
         return None
     return gjs["result"]["file_path"]
 
+
 @app.route('/')
 def index():
+    # Render main page (WebApp)
     return render_template('index.html')
+
 
 @app.route('/get_profile_photo')
 def get_profile_photo():
@@ -57,6 +64,7 @@ def get_profile_photo():
     except Exception as e:
         app.logger.exception("Unexpected error")
         return jsonify({"error": "internal server error"}), 500
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
