@@ -2,26 +2,47 @@ import os
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN") or "8482046560:AAHDHQAgtnWNp7gQr7c5E6MKLtxnvyytyDI"
+# --- Config ---
+API_ID = int(os.environ.get("API_ID", 25742938))  # apna API ID daalo
+API_HASH = os.environ.get("API_HASH", "b35b715fe8dc0a58e8048988286fc5b6")  # apna API Hash daalo
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "8482046560:AAHDHQAgtnWNp7gQr7c5E6MKLtxnvyytyDI")  # apna Bot Token daalo
+
 WEBAPP_URL = os.environ.get("WEBAPP_URL") or "https://demo-qled.onrender.com/"
 
-# Use an in-memory session so no api_id/api_hash required and no session file created
-app = Client(":memory:", bot_token=BOT_TOKEN)
+# --- Bot Init ---
+app = Client(
+    "WebAppBot",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    bot_token=BOT_TOKEN,
+)
 
+
+# /demo command (private only)
 @app.on_message(filters.command("demo") & filters.private)
 async def demo_handler(client, message):
     kb = InlineKeyboardMarkup(
-        [[ InlineKeyboardButton("🚀 Open Music WebApp", web_app=WebAppInfo(url=WEBAPP_URL)) ]]
+        [
+            [InlineKeyboardButton("🚀 Open Music WebApp", web_app=WebAppInfo(url=WEBAPP_URL))]
+        ]
     )
-    await message.reply_text("Click the button below to open the Music WebApp 👇", reply_markup=kb)
+    await message.reply_text(
+        "Click the button below to open the Music WebApp 👇", 
+        reply_markup=kb
+    )
 
+
+# /openweb command (works everywhere)
 @app.on_message(filters.command("openweb"))
 async def openweb_handler(client, message):
     kb = InlineKeyboardMarkup(
-        [[ InlineKeyboardButton("🎵 Open WebApp", web_app=WebAppInfo(url=WEBAPP_URL)) ]]
+        [
+            [InlineKeyboardButton("🎵 Open WebApp", web_app=WebAppInfo(url=WEBAPP_URL))]
+        ]
     )
     await message.reply_text("Tap below:", reply_markup=kb)
 
-if __name__ == "__main__":
-    print("Pyrogram bot starting. Use /demo in a private chat with the bot.")
-    app.run()
+
+# Run Bot
+print("✅ Bot started...")
+app.run()
