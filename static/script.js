@@ -1,29 +1,31 @@
+// static/script.js
 (async function () {
   const statusEl = document.getElementById("status");
-  const avatarEl = document.getElementById("avatar");
+  const out = document.getElementById("out");
+  const avatar = document.getElementById("avatar");
   const nameEl = document.getElementById("name");
   const metaEl = document.getElementById("meta");
-  const outEl = document.getElementById("out");
 
   function show(obj) {
-    outEl.textContent = JSON.stringify(obj, null, 2);
+    out.textContent = JSON.stringify(obj, null, 2);
   }
 
-  const tg = window.Telegram?.WebApp;
+  const tg = window.Telegram?.WebApp ?? null;
   if (!tg) {
-    statusEl.textContent = "❌ Open this inside Telegram Mini App.";
+    statusEl.textContent = "❌ Open this inside Telegram (Mini App).";
     return;
   }
 
   tg.ready();
 
-  const initData = tg.initData || "";
-  if (!initData.includes("hash=")) {
-    statusEl.textContent = "⚠️ No initData found. Open from bot’s WebApp button.";
+  // initData is a query-string-like string provided when opened from Telegram
+  const initData = tg.initData ?? null;
+  if (!initData || !initData.includes("hash=")) {
+    statusEl.textContent = "⚠️ initData/hash missing. Launch the WebApp from Telegram.";
     return;
   }
 
-  statusEl.textContent = "⏳ Verifying initData with server...";
+  statusEl.textContent = "Sending initData to server for verification...";
 
   try {
     const res = await fetch("/verify_init", {
@@ -31,26 +33,39 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ initData })
     });
-
     const js = await res.json();
     show(js);
 
     if (!js.ok) {
-      statusEl.textContent = `❌ Verification failed: ${js.error}`;
+      statusEl.textContent = `❌ Verification failed: ${js.error ?? "unknown"}`;
       return;
     }
 
     statusEl.textContent = "✅ Verified";
 
-    const u = js.user || {};
-    const profileUrl = js.profile_photo_url || u.photo_url || "/static/default-avatar.png";
+    // Present user info
+    const u = js.user ?? null;
+    const profile_photo_url = js.profile_photo_url ?? (u ? u.photo_url : null);
 
-    avatarEl.src = profileUrl;
-    nameEl.textContent = [u.first_name, u.last_name].filter(Boolean).join(" ") || "Unknown";
-    metaEl.textContent = u.username ? `@${u.username}` : `id: ${u.id || "-"}`;
+    if (u && u.first_name) {
+      const parts = [];
+      parts.push(u.first_name || "");
+      if (u.last_name) parts.push(u.last_name);
+      nameEl.textContent = parts.join(" ");
+      metaEl.textContent = u.username ? `@${u.username}` : `id: ${u.id}`;
+    } else {
+      nameEl.textContent = "User";
+      metaEl.textContent = `id: ${u?.id ?? "unknown"}`;
+    }
+
+    if (profile_photo_url) {
+      avatar.src = profile_photo_url;
+    } else {
+      avatar.src = "/static/default-avatar.png";
+    }
 
   } catch (err) {
     statusEl.textContent = "Network error: " + (err.message || err);
-    show({ error: err.message || String(err) });
+    show({ error: err.message ?? String(err) });
   }
 })();
