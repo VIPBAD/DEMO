@@ -1,6 +1,8 @@
+# app.py
 import os
 import hmac
 import hashlib
+import json
 from typing import Optional
 from datetime import datetime, timedelta
 
@@ -30,19 +32,20 @@ _profile_cache: dict[str, tuple[Optional[str], datetime]] = {}
 CACHE_TTL = timedelta(minutes=30)
 
 def _make_secret_key(token: str) -> bytes:
-    return hashlib.sha256(token.encode('utf-8')).digest()
+    """According to Telegram docs: secret = HMAC_SHA256("WebAppData", bot_token)."""
+    return hmac.new(b"WebAppData", token.encode("utf-8"), hashlib.sha256).digest()
 
 def verify_init_data(init_data: str) -> dict:
     if not init_data or not init_data.strip():
         raise HTTPException(status_code=400, detail="init_data missing or empty")
 
     # Split and parse key-value pairs
-    parts = [p for p in init_data.split('&') if '=' in p]
+    parts = [p for p in init_data.split("&") if "=" in p]
     data = {}
     hash_value = None
     for p in parts:
-        k, v = p.split('=', 1)
-        if k == 'hash':
+        k, v = p.split("=", 1)
+        if k == "hash":
             hash_value = v
         else:
             data[k] = v
@@ -52,7 +55,7 @@ def verify_init_data(init_data: str) -> dict:
 
     # Reconstruct data_check_string
     items = sorted([f"{k}={v}" for k, v in data.items()])
-    data_check_string = '&'.join(items).encode('utf-8')
+    data_check_string = "\n".join(items).encode("utf-8")
 
     secret_key = _make_secret_key(BOT_TOKEN)
     computed_hash = hmac.new(secret_key, data_check_string, hashlib.sha256).hexdigest()
@@ -109,11 +112,11 @@ async def verify_init(payload: dict):
     user_id = None
     if "user" in parsed:
         try:
-            userobj = eval(parsed["user"])  # Parse user object
+            userobj = json.loads(parsed["user"])  # ✅ use json.loads
             user_id = str(userobj.get("id"))
             result["user"] = userobj
-        except Exception:
-            pass
+        except Exception as e:
+            result["user_parse_error"] = str(e)
 
     if user_id:
         try:
