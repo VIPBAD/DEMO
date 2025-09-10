@@ -1,62 +1,71 @@
+// static/script.js
 (async function () {
-  const out = document.getElementById('out');
-  const status = document.getElementById('status');
-  const profileCard = document.getElementById('profile-card');
-  const avatar = document.getElementById('avatar');
-  const username = document.getElementById('username');
+  const statusEl = document.getElementById("status");
+  const out = document.getElementById("out");
+  const avatar = document.getElementById("avatar");
+  const nameEl = document.getElementById("name");
+  const metaEl = document.getElementById("meta");
 
-  function show(v) {
-    out.textContent = JSON.stringify(v, null, 2);
+  function show(obj) {
+    out.textContent = JSON.stringify(obj, null, 2);
   }
 
-  const tg = window.Telegram?.WebApp || null;
+  const tg = window.Telegram?.WebApp ?? null;
   if (!tg) {
-    status.textContent = "❌ Telegram WebApp not available; open inside Telegram.";
+    statusEl.textContent = "❌ Open this inside Telegram (Mini App).";
     return;
   }
 
   tg.ready();
 
-  const signed = tg.initData || null;
-
-  function hasHash(s) {
-    return s && s.includes("hash=");
-  }
-
-  if (!hasHash(signed)) {
-    status.textContent = "⚠️ Verification data missing.\nPlease open this WebApp by tapping the bot's WebApp button inside Telegram.";
+  // initData is a query-string-like string provided when opened from Telegram
+  const initData = tg.initData ?? null;
+  if (!initData || !initData.includes("hash=")) {
+    statusEl.textContent = "⚠️ initData/hash missing. Launch the WebApp from Telegram.";
     return;
   }
 
-  status.textContent = "Sending data to server for verification...";
+  statusEl.textContent = "Sending initData to server for verification...";
 
   try {
-    const r = await fetch('/verify_init', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ initData: signed })
+    const res = await fetch("/verify_init", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initData })
     });
-    const js = await r.json();
+    const js = await res.json();
     show(js);
 
-    if (js.ok) {
-      status.textContent = "✅ Verified";
-      status.className = "success";
-
-      profileCard.style.display = 'block';
-      if (js.user) {
-        username.textContent = `("${js.user.first_name || 'User'} [🌸] '♥_♥'")`;
-        if (js.profile_photo_url) {
-          avatar.src = js.profile_photo_url;
-        } else if (js.user.photo_url) {
-          avatar.src = js.user.photo_url;
-        }
-      }
-    } else {
-      status.textContent = `❌ Verification failed: ${js.error || 'Unknown error'}`;
+    if (!js.ok) {
+      statusEl.textContent = `❌ Verification failed: ${js.error ?? "unknown"}`;
+      return;
     }
-  } catch (e) {
-    status.textContent = "Network error: " + e.message;
-    show({ error: e.message });
+
+    statusEl.textContent = "✅ Verified";
+
+    // Present user info
+    const u = js.user ?? null;
+    const profile_photo_url = js.profile_photo_url ?? (u ? u.photo_url : null);
+
+    if (u && u.first_name) {
+      const parts = [];
+      parts.push(u.first_name || "");
+      if (u.last_name) parts.push(u.last_name);
+      nameEl.textContent = parts.join(" ");
+      metaEl.textContent = u.username ? `@${u.username}` : `id: ${u.id}`;
+    } else {
+      nameEl.textContent = "User";
+      metaEl.textContent = `id: ${u?.id ?? "unknown"}`;
+    }
+
+    if (profile_photo_url) {
+      avatar.src = profile_photo_url;
+    } else {
+      avatar.src = "/static/default-avatar.png";
+    }
+
+  } catch (err) {
+    statusEl.textContent = "Network error: " + (err.message || err);
+    show({ error: err.message ?? String(err) });
   }
 })();
