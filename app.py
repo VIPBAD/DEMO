@@ -6,10 +6,10 @@ from datetime import datetime, timedelta
 from typing import Optional
 import httpx
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
-
-# Load environment variables
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
+
 load_dotenv()
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
@@ -17,7 +17,11 @@ if not BOT_TOKEN:
     raise RuntimeError("BOT_TOKEN environment variable not set")
 
 TELEGRAM_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
+TELEGRAM_FILE_API = f"https://api.telegram.org/file/bot{BOT_TOKEN}"
 app = FastAPI()
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # In-memory cache for profile photos
 PROFILE_CACHE: dict[str, tuple[Optional[str], datetime]] = {}
@@ -56,7 +60,7 @@ async def fetch_profile_photo(user_id: str) -> Optional[str]:
     if cache_entry and datetime.utcnow() < cache_entry[1]:
         return cache_entry[0]
 
-    PROFILE_CACHE.pop(user_id, None)
+    PROFILE_CACHE.pop(user_id, None)  # Evict if stale
 
     async with httpx.AsyncClient(timeout=10) as client:
         response = await client.get(f"{TELEGRAM_API}/getUserProfilePhotos", params={"user_id": user_id, "limit": 1})
@@ -95,24 +99,33 @@ async def verify_init_data_endpoint(payload: dict):
 
     result = {"ok": True, "data": verified_data}
 
+    # Parse user from verified data
     if "user" in verified_data:
         try:
-            user = json.loads(verified_data["user"])
+            user_str = verified_data["user"]
+            user = json.loads(user_str)
             user_id = str(user.get("id"))
             result["user"] = {
                 "id": user.get("id"),
                 "first_name": user.get("first_name"),
                 "last_name": user.get("last_name"),
-                "username": user.get("username")
+                "username": user.get("username"),
+                "photo_url": user.get("photo_url")  # May be present or not
             }
-            photo_path = await fetch_profile_photo(user_id)
-            if photo_path:
-                result["user"]["photo_url"] = f"{TELEGRAM_API.replace('bot', 'file/bot')}/{photo_path}"
+
+            # Fetch profile photo if not in init data
+            if not result["user"]["photo_url"]:
+                photo_path = await fetch_profile_photo(user_id)
+                if photo_path:
+                    result["user"]["photo_url"] = f"{TELEGRAM_FILE_API}/{photo_path}"
         except Exception as e:
             result["user_parse_error"] = str(e)
 
     return JSONResponse(result)
 
-@app.get("/", response_class=JSONResponse)
-async def root():
-    return JSONResponse({"message": "Telegram Mini App backend is running"})
+@app.get("/", response_class=HTMLResponse)
+async def root(request: Request):
+    # Serve the index.html directly
+    with open("index.html", "r") as f:
+        html_content = f.read()
+    return HTMLResponse(content=html_content)
