@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Telegram Mini App</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body style="font-family: Arial; text-align: center; padding: 50px;">
+  <h2>Telegram Mini App Demo</h2>
+  <div id="profile"></div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    const user = tg.initDataUnsafe?.user;
+
+    if (user) {
+      document.getElementById("profile").innerHTML = `
+        <img src="${user.photo_url}" width="100" style="border-radius:50%"><br>
+        <b>${user.first_name} ${user.last_name || ""}</b><br>
+        @${user.username || "No username"}<br>
+        ID: ${user.id}
+      `;
+    } else {
+      document.getElementById("profile").innerText = "No user data found.";
+    }
+  </script>
+</body>
+</html>
