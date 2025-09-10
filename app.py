@@ -4,13 +4,12 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "Telegram Mini App Backend is Running!"
+    return render_template("index.html")  # HTML load karega
 
 @app.route("/save_user", methods=["POST"])
 def save_user():
     data = request.json
-    # Example: user info console te print
-    print("User Data:", data)
+    print("User Data:", data)  # Console te print hovega
     return {"status": "ok", "message": "User saved successfully"}
 
 if __name__ == "__main__":
