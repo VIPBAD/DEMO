@@ -3,5 +3,14 @@ services:
     name: mini-app-music-player
     env: node
     plan: free
-    buildCommand: npm install && npm run build
-    startCommand: node dist/server.js
+    region: oregon # Optional: Choose a region (e.g., oregon, ohio, frankfurt, singapore)
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BOT_TOKEN
+        sync: false # This will prompt you to set the BOT_TOKEN in Render's dashboard
+      - key: PORT
+        value: 10000 # Render requires port 10000 for web services
+    autoDeploy: true # Optional: Automatically deploy on code push
