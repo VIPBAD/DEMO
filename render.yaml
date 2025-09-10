@@ -1,16 +1,7 @@
 services:
   - type: web
     name: mini-app-music-player
-    env: node
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
     plan: free
-    region: oregon
-    buildCommand: npm install
-    startCommand: node server.js
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: BOT_TOKEN
-        sync: false
-      - key: PORT
-        value: 10000
-    autoDeploy: true
