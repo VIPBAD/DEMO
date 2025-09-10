@@ -1,4 +1,3 @@
-// static/script.js
 (async function () {
   const statusEl = document.getElementById("status");
   const out = document.getElementById("out");
@@ -18,7 +17,6 @@
 
   tg.ready();
 
-  // initData is a query-string-like string provided when opened from Telegram
   const initData = tg.initData ?? null;
   if (!initData || !initData.includes("hash=")) {
     statusEl.textContent = "⚠️ initData/hash missing. Launch the WebApp from Telegram.";
@@ -43,9 +41,7 @@
 
     statusEl.textContent = "✅ Verified";
 
-    // Present user info
-    const u = js.user ?? null;
-    const profile_photo_url = js.profile_photo_url ?? (u ? u.photo_url : null);
+    const u = js.data?.user ? JSON.parse(js.data.user) : null;
 
     if (u && u.first_name) {
       const parts = [];
@@ -58,11 +54,7 @@
       metaEl.textContent = `id: ${u?.id ?? "unknown"}`;
     }
 
-    if (profile_photo_url) {
-      avatar.src = profile_photo_url;
-    } else {
-      avatar.src = "/static/default-avatar.png";
-    }
+    avatar.src = "/static/default-avatar.png";
 
   } catch (err) {
     statusEl.textContent = "Network error: " + (err.message || err);
