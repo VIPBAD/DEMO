@@ -1,56 +1,74 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mini App — Profile</title>
-  <style>
-    body {
-      font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
-      background: #0d1220;
-      color: #ecf0f1;
-      margin: 0;
-      padding: 18px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      min-height:100vh;
-    }
-    .card {
-      width:320px;
-      max-width:100%;
-      background: rgba(255,255,255,0.04);
-      border-radius:12px;
-      padding:16px;
-      text-align:center;
-    }
-    .avatar {
-      width:96px;
-      height:96px;
-      border-radius:50%;
-      object-fit:cover;
-      border:2px solid rgba(255,255,255,0.12);
-      display:block;
-      margin: 0 auto 10px;
-    }
-    .name { font-size:1.1rem; font-weight:600; margin-bottom:6px; }
-    .meta { font-size:0.9rem; opacity:0.85; margin-bottom:8px; }
-    pre { text-align:left; margin-top:12px; background:#071020; padding:10px; border-radius:8px; color:#dbeafe; overflow:auto; max-height:200px; }
-    #status { margin-bottom:8px; color:#ffb86b; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Mini App</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #f0f0f0; }
+        .container { max-width: 400px; margin: 50px auto; padding: 20px; background: white; border-radius: 10px; }
+        .avatar { width: 100px; height: 100px; border-radius: 50%; margin-bottom: 10px; }
+        #status { color: #d32f2f; }
+        pre { text-align: left; background: #eee; padding: 10px; border-radius: 5px; }
+    </style>
 </head>
 <body>
-  <div class="card">
-    <div id="status">Initializing...</div>
+    <div class="container">
+        <div id="status">Initializing...</div>
+        <img id="avatar" src="/static/default-avatar.png" alt="User Avatar">
+        <div id="name">--</div>
+        <div id="meta">--</div>
+        <pre id="output">Waiting for data...</pre>
+    </div>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        (async () => {
+            const status = document.getElementById('status');
+            const avatar = document.getElementById('avatar');
+            const name = document.getElementById('name');
+            const meta = document.getElementById('meta');
+            const output = document.getElementById('output');
 
-    <img id="avatar" class="avatar" src="/static/default-avatar.png" alt="avatar" />
-    <div class="name" id="name">—</div>
-    <div class="meta" id="meta">—</div>
+            const tg = window.Telegram?.WebApp;
+            if (!tg) {
+                status.textContent = '❌ Please open this in Telegram.';
+                return;
+            }
 
-    <pre id="out">Waiting for initData...</pre>
-  </div>
+            tg.ready();
+            const initData = tg.initData;
+            if (!initData || !initData.includes('hash=')) {
+                status.textContent = '⚠️ Invalid initData. Open via Telegram.';
+                return;
+            }
 
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="/static/script.js"></script>
+            status.textContent = 'Verifying data...';
+            try {
+                const response = await fetch('/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData })
+                });
+                const result = await response.json();
+
+                output.textContent = JSON.stringify(result, null, 2);
+                if (!result.ok) {
+                    status.textContent = `❌ ${result.error || 'Verification failed'}`;
+                    return;
+                }
+
+                status.textContent = '✅ Verified';
+                const user = result.user;
+                if (user) {
+                    name.textContent = [user.first_name, user.last_name].filter(Boolean).join(' ') || 'User';
+                    meta.textContent = user.username ? `@${user.username}` : `ID: ${user.id}`;
+                    avatar.src = user.photo_url || '/static/default-avatar.png';
+                }
+            } catch (error) {
+                status.textContent = `Error: ${error.message}`;
+                output.textContent = JSON.stringify({ error: error.message }, null, 2);
+            }
+        })();
+    </script>
 </body>
 </html>
