@@ -3,63 +3,164 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Music Room</title>
+  <title>My Music Profile</title>
   <link rel="stylesheet" href="/static/style.css" />
+  <style>
+    body {
+      background: linear-gradient(180deg, #0d0f11, #131416);
+      color: #fff;
+      font-family: Inter, Arial, sans-serif;
+    }
+    .app-header {
+      text-align: center;
+      font-weight: 700;
+      padding: 16px;
+      font-size: 20px;
+    }
+    .profile-card {
+      background: rgba(255, 255, 255, 0.05);
+      margin: 14px;
+      padding: 16px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .profile-card img {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .profile-info h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+    .profile-info p {
+      margin: 4px 0;
+      color: #9aa0a6;
+      font-size: 14px;
+    }
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 20px;
+      margin-top: -10px;
+    }
+    .stat {
+      text-align: center;
+    }
+    .stat .num {
+      font-weight: 700;
+      color: var(--accent, #6ea5ff);
+      font-size: 18px;
+    }
+    .stat .label {
+      font-size: 13px;
+      color: #9aa0a6;
+    }
+    .section {
+      margin: 20px;
+    }
+    .section h3 {
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+    .list {
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .list li {
+      padding: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 14px;
+    }
+    .list li:last-child {
+      border-bottom: none;
+    }
+    footer {
+      text-align: center;
+      padding: 20px;
+    }
+    footer .nav-btn {
+      margin: 0 10px;
+      text-decoration: none;
+      color: var(--accent, #6ea5ff);
+      font-weight: 600;
+    }
+  </style>
 </head>
 <body>
+  <!-- Header -->
   <header class="app-header">🎶 BAD MUSIC</header>
 
-  <!-- USER PROFILE -->
-  <section class="user-profile">
-    <img id="profile-pic" width="60" style="border-radius:50%">
-    <div>
-      <h3 id="profile-name"></h3>
-      <p id="profile-username"></p>
+  <!-- Profile Card -->
+  <div class="profile-card">
+    <img id="profile-pic" src="https://via.placeholder.com/72">
+    <div class="profile-info">
+      <h2 id="profile-name">Unknown</h2>
+      <p id="profile-username">@No username</p>
+      <p>ID: <span id="profile-id">{{ uid }}</span></p>
     </div>
-  </section>
+  </div>
 
-  <!-- SONG PLAYER -->
-  <main class="room">
-    <h2>Now Playing</h2>
-    <audio controls autoplay>
-      <source src="{{ url }}" type="audio/mpeg">
-    </audio>
-    <div class="actions">
-      <button onclick="markPlay()">▶️ Play</button>
-      <button onclick="markFav()">❤️ Favorite</button>
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat">
+      <div class="num">{{ favs|length }}</div>
+      <div class="label">Favorites</div>
     </div>
-  </main>
+    <div class="stat">
+      <div class="num">{{ plays|length }}</div>
+      <div class="label">Total plays</div>
+    </div>
+  </div>
 
-  <!-- NAV -->
+  <!-- Favorites -->
+  <div class="section">
+    <h3>❤️ Favorites</h3>
+    <ul class="list">
+      {% if favs %}
+        {% for f in favs %}
+          <li><a href="/?audio={{ f }}">{{ f }}</a></li>
+        {% endfor %}
+      {% else %}
+        <li>No favorites yet</li>
+      {% endif %}
+    </ul>
+  </div>
+
+  <!-- Recents -->
+  <div class="section">
+    <h3>⏱ Recent Plays</h3>
+    <ul class="list">
+      {% if plays %}
+        {% for p in plays %}
+          <li><a href="/?audio={{ p }}">{{ p }}</a></li>
+        {% endfor %}
+      {% else %}
+        <li>No recent plays</li>
+      {% endif %}
+    </ul>
+  </div>
+
+  <!-- Navigation -->
   <footer>
-    <a href="/?url={{ url }}" class="nav-btn">Room</a>
-    <a href="/me?uid=guest" class="nav-btn">Me</a>
+    <a href="/?audio=" class="nav-btn">🏠 Room</a>
+    <a href="/me?uid={{ uid }}" class="nav-btn">👤 Me</a>
   </footer>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
-const tg = window.Telegram.WebApp;
-const user = tg.initDataUnsafe?.user;
+const tg = window.Telegram?.WebApp;
+const user = tg?.initDataUnsafe?.user;
 
 if (user) {
-  document.getElementById("profile-pic").src = user.photo_url || "https://via.placeholder.com/60";
+  document.getElementById("profile-pic").src = user.photo_url || "https://via.placeholder.com/72";
   document.getElementById("profile-name").innerText = user.first_name + (user.last_name ? " " + user.last_name : "");
   document.getElementById("profile-username").innerText = "@" + (user.username || "No username");
-}
-
-function markPlay() {
-  fetch("/play", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({uid: user?.id || "guest", song: "{{ url }}"})
-  })
-}
-function markFav() {
-  fetch("/favorite", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({uid: user?.id || "guest", song: "{{ url }}"})
-  })
+  document.getElementById("profile-id").innerText = user.id;
 }
 </script>
 </body>
