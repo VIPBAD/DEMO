@@ -1,167 +1,113 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>My Music Profile</title>
-  <link rel="stylesheet" href="/static/style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
-    body {
-      background: linear-gradient(180deg, #0d0f11, #131416);
-      color: #fff;
-      font-family: Inter, Arial, sans-serif;
-    }
-    .app-header {
-      text-align: center;
-      font-weight: 700;
-      padding: 16px;
-      font-size: 20px;
-    }
-    .profile-card {
-      background: rgba(255, 255, 255, 0.05);
-      margin: 14px;
-      padding: 16px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .profile-card img {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      object-fit: cover;
-    }
-    .profile-info h2 {
-      margin: 0;
-      font-size: 18px;
-    }
-    .profile-info p {
-      margin: 4px 0;
-      color: #9aa0a6;
-      font-size: 14px;
-    }
-    .stats {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px 20px;
-      margin-top: -10px;
-    }
-    .stat {
-      text-align: center;
-    }
-    .stat .num {
-      font-weight: 700;
-      color: var(--accent, #6ea5ff);
-      font-size: 18px;
-    }
-    .stat .label {
-      font-size: 13px;
-      color: #9aa0a6;
-    }
-    .section {
-      margin: 20px;
-    }
-    .section h3 {
-      margin-bottom: 10px;
-      font-size: 16px;
-    }
-    .list {
-      background: rgba(255, 255, 255, 0.04);
-      border-radius: 12px;
-      padding: 10px;
-    }
-    .list li {
-      padding: 8px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      font-size: 14px;
-    }
-    .list li:last-child {
-      border-bottom: none;
-    }
-    footer {
-      text-align: center;
-      padding: 20px;
-    }
-    footer .nav-btn {
-      margin: 0 10px;
-      text-decoration: none;
-      color: var(--accent, #6ea5ff);
-      font-weight: 600;
-    }
+    body { background: linear-gradient(135deg, #2b0036, #0f1113); color:#fff; font-family: Inter, sans-serif; }
+    .app-header { display:flex; justify-content:space-between; align-items:center; padding:12px 18px; font-size:18px; font-weight:700; }
+    .listeners { font-size:13px; color:#aaa; }
+    .album-wrap { margin:20px auto; position:relative; width:260px; height:260px; border-radius:50%; padding:12px;
+      background:conic-gradient(#ff6ea5 0% {{ progress }}%, #333 {{ progress }}% 100%); }
+    .album-wrap img { width:100%; height:100%; border-radius:50%; object-fit:cover; }
+    .track-info { text-align:center; margin-top:12px; }
+    .track-title { font-size:18px; font-weight:700; }
+    .track-artist { font-size:14px; color:#bbb; }
+    .listeners-row { display:flex; justify-content:center; gap:6px; margin:12px 0; }
+    .listeners-row img { width:32px; height:32px; border-radius:50%; border:2px solid #444; }
+    .queue-btn { margin:16px auto; padding:12px 24px; background:linear-gradient(90deg,#6ea5ff,#a66bff); border:none; border-radius:12px; color:#fff; font-weight:600; cursor:pointer; display:block; }
+    .queue-modal { display:none; position:fixed; left:0; right:0; bottom:0; top:0; background:rgba(0,0,0,.8); }
+    .queue-box { background:#222; margin:60px auto; max-width:400px; border-radius:16px; padding:16px; }
+    .queue-item { display:flex; align-items:center; gap:12px; margin:8px 0; }
+    .queue-item img { width:48px; height:48px; border-radius:8px; }
+    footer { position:fixed; bottom:0; left:0; right:0; background:#111; display:flex; justify-content:space-around; padding:12px 0; }
+    footer a { text-decoration:none; color:#aaa; font-size:16px; }
   </style>
 </head>
 <body>
-  <!-- Header -->
-  <header class="app-header">🎶 BAD MUSIC</header>
+  <header class="app-header">
+    <div>🎶 BAD MUSIC</div>
+    <div class="listeners"><span id="listenerCount">0</span> listeners</div>
+  </header>
 
-  <!-- Profile Card -->
-  <div class="profile-card">
-    <img id="profile-pic" src="https://via.placeholder.com/72">
-    <div class="profile-info">
-      <h2 id="profile-name">Unknown</h2>
-      <p id="profile-username">@No username</p>
-      <p>ID: <span id="profile-id">{{ uid }}</span></p>
+  <main class="player-screen">
+    <div class="album-wrap">
+      <img id="player-thumb" src="{{ thumb }}" alt="Album">
+    </div>
+
+    <div class="track-info">
+      <div class="track-title" id="title">{{ title }}</div>
+      <div class="track-artist" id="artist">{{ artist }}</div>
+    </div>
+
+    <div class="listeners-row" id="listenersRow"></div>
+
+    <div class="progress">
+      <span id="current">0:00</span>
+      <input id="seek" type="range" min="0" max="100" value="0" />
+      <span id="total">0:00</span>
+    </div>
+
+    <div class="controls">
+      <button class="ctrl" onclick="rewind()">⏮</button>
+      <button id="playBtn" class="play-prim" onclick="togglePlay()">⏵</button>
+      <button class="ctrl" onclick="forward()">⏭</button>
+    </div>
+
+    <div class="volume-row">
+      <div style="font-size:14px;color:#aaa">Vol</div>
+      <input type="range" id="volume" min="0" max="1" step="0.05" value="0.8" />
+      <span id="volPercent">80%</span>
+    </div>
+
+    <button class="queue-btn" onclick="openQueue()">🎶 Open Queue</button>
+
+    <audio id="audio" preload="auto" src="{{ audio_url }}"></audio>
+  </main>
+
+  <!-- Queue Modal -->
+  <div class="queue-modal" id="queueModal">
+    <div class="queue-box">
+      <h3>Up Next</h3>
+      <div id="queueList"></div>
+      <button class="queue-btn" style="background:#444;" onclick="closeQueue()">Close</button>
     </div>
   </div>
 
-  <!-- Stats -->
-  <div class="stats">
-    <div class="stat">
-      <div class="num">{{ favs|length }}</div>
-      <div class="label">Favorites</div>
-    </div>
-    <div class="stat">
-      <div class="num">{{ plays|length }}</div>
-      <div class="label">Total plays</div>
-    </div>
-  </div>
-
-  <!-- Favorites -->
-  <div class="section">
-    <h3>❤️ Favorites</h3>
-    <ul class="list">
-      {% if favs %}
-        {% for f in favs %}
-          <li><a href="/?audio={{ f }}">{{ f }}</a></li>
-        {% endfor %}
-      {% else %}
-        <li>No favorites yet</li>
-      {% endif %}
-    </ul>
-  </div>
-
-  <!-- Recents -->
-  <div class="section">
-    <h3>⏱ Recent Plays</h3>
-    <ul class="list">
-      {% if plays %}
-        {% for p in plays %}
-          <li><a href="/?audio={{ p }}">{{ p }}</a></li>
-        {% endfor %}
-      {% else %}
-        <li>No recent plays</li>
-      {% endif %}
-    </ul>
-  </div>
-
-  <!-- Navigation -->
   <footer>
-    <a href="/?audio=" class="nav-btn">🏠 Room</a>
-    <a href="/me?uid={{ uid }}" class="nav-btn">👤 Me</a>
+    <a href="/"><span>🏠 Room</span></a>
+    <a href="/me?uid=guest"><span>👤 Me</span></a>
   </footer>
 
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script>
-const tg = window.Telegram?.WebApp;
-const user = tg?.initDataUnsafe?.user;
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>
+    async function loadListeners() {
+      const res = await fetch("/listeners");
+      const data = await res.json();
+      document.getElementById("listenerCount").textContent = data.count;
+      const row = document.getElementById("listenersRow");
+      row.innerHTML = data.users.map(u => `<img src="${u.photo_url}">`).join('');
+    }
+    setInterval(loadListeners, 5000);
+    loadListeners();
 
-if (user) {
-  document.getElementById("profile-pic").src = user.photo_url || "https://via.placeholder.com/72";
-  document.getElementById("profile-name").innerText = user.first_name + (user.last_name ? " " + user.last_name : "");
-  document.getElementById("profile-username").innerText = "@" + (user.username || "No username");
-  document.getElementById("profile-id").innerText = user.id;
-}
-</script>
+    async function openQueue() {
+      const res = await fetch("/queue");
+      const q = await res.json();
+      document.getElementById("queueList").innerHTML = q.map(it => `
+        <div class="queue-item">
+          <img src="${it.thumb}">
+          <div>
+            <div>${it.title}</div>
+            <div style="color:#aaa;font-size:12px">${it.artist}</div>
+          </div>
+          <div style="margin-left:auto;font-size:12px">${it.duration}</div>
+        </div>`).join('');
+      document.getElementById("queueModal").style.display="block";
+    }
+    function closeQueue(){ document.getElementById("queueModal").style.display="none"; }
+  </script>
 </body>
 </html>
